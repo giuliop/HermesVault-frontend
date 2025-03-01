@@ -1,6 +1,7 @@
 # [Hermes Vault](https://github.com/giuliop/HermesVault)
-This is the frontend code for HermesVault, an application for private transaction on the Algorand blockchain.  
-Access it [hermesvault.org](https://hermesvault.org)
+This is the frontend code for HermesVault, an application for private transaction on the Algorand blockchain.
+
+Access it at [hermesvault.org](https://hermesvault.org)
 
 
 ## How to use
@@ -29,7 +30,7 @@ Fill the `Amount` field with the amount you wish to withdraw, the `Address` fiel
 
 The address receiving the tokens is not paying any transaction fee, so it can be a new, zero-balance account.
 
-The deposit you are withdrawing from (identified by your secret note) will be reduced by the amount withdrawn and a protocol fee of 0.1% (with a minimum fee of 0.1 algo).  
+The deposit you are withdrawing from (identified by your secret note) will be reduced by the amount withdrawn and a protocol fee of 0.1% (with a minimum fee of 0.1 algo).
 What is left will be automatically inserted in the contract as a new deposit with a new secret note that will be shown to you in the next screen.
 
 As with deposits, before the withdrawal transaction takes place, you will be asked to save the new secret note and prove you did by pasting it back in the appropriate section.
@@ -40,8 +41,8 @@ The frontend does not charge any fees.
 
 The protocol does not charge any fee for deposits but the transaction fee needed by the network to process it is 0.042 algo which you will pay.
 
-The protocol charges a 0.1% fee on withdrawals (with a minimum fee of 0.1 algo).  
-Of that fee, ~0.1 algo are needed to cover transaction and storage fees, while the rest accrues to the protocol treasury.  
+The protocol charges a 0.1% fee on withdrawals (with a minimum fee of 0.1 algo).
+Of that fee, ~0.1 algo are needed to cover transaction and storage fees, while the rest accrues to the protocol treasury.
 100% of the protocol treasury will be targeted back to the protocol users, details will be published before MainNet.
 
 
