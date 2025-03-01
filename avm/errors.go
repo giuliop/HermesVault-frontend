@@ -20,19 +20,19 @@ const (
 func (e SendTxnErrorType) String() string {
 	switch e {
 	case ErrWaitTimeout:
-		return "TxnConfirmationTimeoutError"
+		return "TxnTimeoutError"
 	case ErrRejected:
-		return "TxnConfirmationRejectionError"
+		return "TxnRejectionError"
 	case ErrOverSpend:
-		return "TxnConfirmationOverSpendError"
+		return "TxnOverSpendError"
 	case ErrExpired:
-		return "TxnConfirmationExpiredError"
+		return "TxnExpiredError"
 	case ErrInternal:
-		return "TxnConfirmationInternalError"
+		return "TxnInternalError"
 	case ErrMinimumBalanceRequirement:
-		return "TxnConfirmationMinimumBalanceRequirementError"
+		return "TxnMinimumBalanceRequirementError"
 	default:
-		return "TxnConfirmationUnknownError"
+		return "TxnUnknownError"
 	}
 }
 
