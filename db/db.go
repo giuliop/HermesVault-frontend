@@ -114,3 +114,33 @@ func Close() {
 		log.Printf("Error closing txnsDb: %v", err)
 	}
 }
+
+// GetStas returns the statistics from the database
+func GetStats() (*models.StatData, error) {
+	statsSql := `SELECT
+		(SELECT value FROM stats WHERE key = 'total_deposits'),
+		(SELECT value FROM stats WHERE key = 'total_withdrawals'),
+		(SELECT value FROM stats WHERE key = 'total_fees'),
+		(SELECT value FROM stats WHERE key = 'count_deposits')`
+	var depositTotal, withdrawalTotal, feeTotal, depositCount uint64
+	err := txnsDb.QueryRow(statsSql).Scan(&depositTotal, &withdrawalTotal, &feeTotal,
+		&depositCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stats: %w", err)
+	}
+
+	var noteCount int
+	notesSql := `SELECT COUNT(*) FROM txns`
+	err = txnsDb.QueryRow(notesSql).Scan(&noteCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get note count: %w", err)
+	}
+
+	return &models.StatData{
+		DepositTotal:    models.NewAmount(depositTotal),
+		WithdrawalTotal: models.NewAmount(withdrawalTotal),
+		FeeTotal:        models.NewAmount(feeTotal),
+		DepositCount:    int(depositCount),
+		NoteCount:       noteCount,
+	}, nil
+}

@@ -35,6 +35,7 @@ def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
         )
         cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_deposits'",
                        (deposit.amount,))
+        cursor.execute("UPDATE stats SET value = value + 1 WHERE key = 'count_deposits'")
 
         cursor.execute("UPDATE roots SET value = ?, leaf_count = ? WHERE id = 1",
                           (root, note.leaf_index + 1))
@@ -145,7 +146,8 @@ def initialize_db(db_file: str) -> None:
     stats_keys = [
         ("total_deposits", 0),
         ("total_withdrawals", 0),
-        ("total_fees", 0)
+        ("total_fees", 0),
+        ("count_deposits", 0)
     ]
     cursor.executemany(
         "INSERT OR IGNORE INTO stats (key, value) VALUES (?, ?)",

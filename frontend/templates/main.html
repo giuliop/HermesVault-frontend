@@ -16,11 +16,7 @@
 <body hx-boost="true"
       hx-ext="response-targets">
       <div class="demobar">
-            TESTNET DEMO (
-                <a href="https://github.com/giuliop/HermesVault">about</a>
-                |
-                <a href="https://github.com/giuliop/HermesVault-frontend/blob/main/README.md">how to use</a>
-            )
+            TESTNET DEMO
     </div>
     <h1 class="title">Hermes Vault</h1>
     <div id="ui"
@@ -28,7 +24,13 @@
          hx-trigger="load delay:100ms"
          hx-target="#ui"
          hx-swap="innerHTML"
-    ></div>
+    >
+    </div>
+    <div class="link-bar">
+        <a href="https://github.com/giuliop/HermesVault">about</a>
+        |
+        <a href="https://github.com/giuliop/HermesVault-frontend/blob/main/README.md">how to use</a>
+    </div>
 </body>
 
 </html>
@@ -47,6 +49,7 @@
 {{define "tabList"}}
 <div class="tab-list" role="tablist" hx-swap="settle:0s">
     {{template "tabButton" (dict "url" "deposit" "title" "Deposit" "selected" .)}}
+    {{template "tabButton" (dict "url" "stats" "title" "Statistics" "selected" .)}}
     {{template "tabButton" (dict "url" "withdraw" "title" "Withdraw" "selected" .)}}
 </div>
 {{end}}
@@ -54,7 +57,6 @@
 {{define "depositForm"}}
 {{template "tabList" "deposit"}}
 <div idString="tab-content" class="tab-content" role="tabpanel" data-wallet>
-
 	<h2>Deposit</h2>
 	<form hx-post="deposit"
           hx-target-error="#errorBox"

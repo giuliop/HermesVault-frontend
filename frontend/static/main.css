@@ -200,6 +200,54 @@ img.centered {
     color: white;
 }
 
+.link-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10;
+}
+
+.link-bar a {
+    text-decoration: none;
+    font-weight: bold;
+    color: #414040;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.link-bar a:hover {
+    color: black;
+}
+
+.stats-table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    text-align: left;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.stats-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ddd;
+}
+
+.stats-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.stats-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.stats-table tr td:nth-child(2){
+    text-align: right;
+}
+
+.stats-table td:last-child {
+    font-style: italic;
+}
+
 :root.dark-theme {
     --fg: var(--gray-0);
     --muted-fg: var(--gray-2);

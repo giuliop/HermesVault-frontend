@@ -1,0 +1,45 @@
+{{define "stats"}}
+{{template "tabList" "stats"}}
+<div idString="tab-content" class="tab-content" role="tabpanel">
+    <h3>Statistics</h3>
+    <table class="stats-table">
+        <tbody>
+            <tr>
+                <td>Number of deposits made:</td>
+                <td>{{.DepositCount}}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Number of notes created:</td>
+                <td>{{.NoteCount}}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Number of notes spent:</td>
+                <td>{{.SpentNoteCount}}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Total value deposited:</td>
+                <td>{{.DepositTotal}}</td>
+                <td>algo</td>
+            </tr>
+            <tr>
+                <td>Total value withdrawn:</td>
+                <td>{{.WithdrawalTotal}}</td>
+                <td>algo</td>
+            </tr>
+            <tr>
+                <td>Total value locked:</td>
+                <td>{{.TVL}}</td>
+                <td>algo</td>
+            </tr>
+            <tr>
+                <td>Total protocol fees generated:</td>
+                <td>{{.FeeTotal}}</td>
+                <td>algo</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{{end}}

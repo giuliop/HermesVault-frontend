@@ -42,6 +42,7 @@ func main() {
 	http.HandleFunc("/withdraw", handlers.WithdrawHandler)
 	http.HandleFunc("/confirm-deposit", handlers.ConfirmDepositHandler)
 	http.HandleFunc("/confirm-withdraw", handlers.ConfirmWithdrawHandler)
+	http.HandleFunc("/stats", handlers.StatsHandler)
 
 	// Serve static files from the "static" directory
 	http.Handle("/static/", http.StripPrefix("/static/",
