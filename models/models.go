@@ -60,10 +60,8 @@ type StatData struct {
 	NoteCount       int
 }
 
-func (s *StatData) TVL() Amount {
+func (s *StatData) TVL() *Amount {
 	tvl := s.DepositTotal.Microalgos - s.WithdrawalTotal.Microalgos - s.FeeTotal.Microalgos
-	return Amount{
-		Algostring: MicroAlgosToAlgoString(tvl),
-		Microalgos: tvl,
-	}
+	tvlAmount := NewAmount(tvl)
+	return &tvlAmount
 }

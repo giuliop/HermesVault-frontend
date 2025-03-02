@@ -40,10 +40,10 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 		DepositCount:    statData.DepositCount,
 		NoteCount:       statData.NoteCount,
 		SpentNoteCount:  statData.NoteCount - statData.DepositCount,
-		DepositTotal:    statData.DepositTotal.Algostring,
-		WithdrawalTotal: statData.WithdrawalTotal.Algostring,
-		TVL:             statData.TVL().Algostring,
-		FeeTotal:        statData.FeeTotal.Algostring,
+		DepositTotal:    statData.DepositTotal.Round().Algostring,
+		WithdrawalTotal: statData.WithdrawalTotal.Round().Algostring,
+		TVL:             statData.TVL().Round().Algostring,
+		FeeTotal:        statData.FeeTotal.Round().Algostring,
 	}
 
 	if err := templates.Stats.Execute(w, stats); err != nil {

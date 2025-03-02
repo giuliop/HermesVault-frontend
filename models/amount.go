@@ -16,32 +16,39 @@ type Amount struct {
 // Fee calculates the fee for a withdrawal amount
 func (withdrawalAmount *Amount) Fee() Amount {
 	fee := CalculateFee(withdrawalAmount.Microalgos)
-	return Amount{
-		Algostring: MicroAlgosToAlgoString(fee),
-		Microalgos: fee,
-	}
+	return NewAmount(fee)
 }
 
-// CalculateFee calculates the fee for a given amount; the fee is 0.1% of the amount with a minimum of 1000 microalgos
-func CalculateFee(amount uint64) uint64 {
-	fee := amount / config.WithDrawalFeeDivisor
-	if fee < config.WithdrawalMinimumFee {
-		fee = config.WithdrawalMinimumFee
+// Round rounds the Algostring to the nearest algo but keeps the Microalgos value
+func (a *Amount) Round() *Amount {
+	// Round the algostring to the nearest algo
+	wholeAlgos := a.Microalgos / 1_000_000
+	remainingMicroAlgos := a.Microalgos % 1_000_000
+	if remainingMicroAlgos >= 500_000 {
+		wholeAlgos++
 	}
-	return fee
+	a.Algostring = addThousandSeparators(wholeAlgos)
+	return a
+}
+
+// CalculateFee calculates the fee for a given amount based on config parameters;
+// e.g., the fee is 0.1% of the amount with a minimum of 1000 microalgos
+func CalculateFee(amount uint64) uint64 {
+	return max(amount/config.WithDrawalFeeDivisor, config.WithdrawalMinimumFee)
 }
 
 // MicroAlgosToAlgoString converts microalgos (uint64) to a string representing algos.
 func MicroAlgosToAlgoString(microalgos uint64) string {
-	const microAlgosPerAlgo = 1_000_000
-	wholeAlgos := microalgos / microAlgosPerAlgo
-	remainingMicroAlgos := microalgos % microAlgosPerAlgo
-	s := fmt.Sprintf("%d.%06d", wholeAlgos, remainingMicroAlgos)
-	s = strings.TrimRight(s, "0")
-	if s[len(s)-1] == '.' {
-		s = s[:len(s)-1]
+	wholeAlgos := microalgos / 1_000_000
+	remainingMicroAlgos := microalgos % 1_000_000
+
+	wholeAlgosStr := addThousandSeparators(wholeAlgos)
+	fracStr := fmt.Sprintf("%06d", remainingMicroAlgos)
+	fracStr = strings.TrimRight(fracStr, "0")
+	if fracStr == "" {
+		return wholeAlgosStr
 	}
-	return s
+	return fmt.Sprintf("%s.%s", wholeAlgosStr, fracStr)
 }
 
 // NewAmount creates a new Amount from a microalgos value
@@ -50,4 +57,25 @@ func NewAmount(microalgos uint64) Amount {
 		Algostring: MicroAlgosToAlgoString(microalgos),
 		Microalgos: microalgos,
 	}
+}
+
+// addThousandSeparators adds commas to a number string every 3 digits
+func addThousandSeparators(n uint64) string {
+	s := fmt.Sprintf("%d", n)
+	if len(s) <= 3 {
+		return s
+	}
+	remainder := len(s) % 3
+	var result []byte
+	if remainder > 0 {
+		result = append(result, s[:remainder]...)
+		result = append(result, ',')
+	}
+	for i := remainder; i < len(s); i += 3 {
+		result = append(result, s[i:i+3]...)
+		if i+3 < len(s) {
+			result = append(result, ',')
+		}
+	}
+	return string(result)
 }

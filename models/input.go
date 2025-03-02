@@ -37,10 +37,7 @@ func (input Input) ToAmount() (Amount, error) {
 		}
 	}
 	microalgos := integer*1_000_000 + decimal
-	return Amount{
-		Algostring: MicroAlgosToAlgoString(microalgos),
-		Microalgos: microalgos,
-	}, nil
+	return NewAmount(microalgos), nil
 }
 
 // toAddress converts an input to an Address
