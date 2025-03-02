@@ -51,3 +51,19 @@ func EncodeTxnsToJson(txns []types.Transaction) string {
 	}
 	return string(jsonData)
 }
+
+type StatData struct {
+	DepositTotal    Amount
+	WithdrawalTotal Amount
+	FeeTotal        Amount
+	DepositCount    int
+	NoteCount       int
+}
+
+func (s *StatData) TVL() Amount {
+	tvl := s.DepositTotal.Microalgos - s.WithdrawalTotal.Microalgos - s.FeeTotal.Microalgos
+	return Amount{
+		Algostring: MicroAlgosToAlgoString(tvl),
+		Microalgos: tvl,
+	}
+}

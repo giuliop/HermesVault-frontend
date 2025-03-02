@@ -43,3 +43,11 @@ func MicroAlgosToAlgoString(microalgos uint64) string {
 	}
 	return s
 }
+
+// NewAmount creates a new Amount from a microalgos value
+func NewAmount(microalgos uint64) Amount {
+	return Amount{
+		Algostring: MicroAlgosToAlgoString(microalgos),
+		Microalgos: microalgos,
+	}
+}
