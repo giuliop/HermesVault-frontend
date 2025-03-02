@@ -7,8 +7,6 @@ node_modules/
 *.err
 *.zip
 
-project
-
 # db files
 *.db*
 

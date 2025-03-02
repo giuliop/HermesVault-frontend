@@ -1,0 +1,103 @@
+This project is a webapp that acts as frontend to an Algorand blockchain application offering private algo transfers, similar to Tornado Cash.
+
+There are three processes running:
+* an algod node connected to the Algorand blockchain to broadcast transactions. The project
+  uses the official go-algorand implementation to run the node
+* a golang web server written with the net/http package without third party frameworks that
+  served the frontend and manages the backend, that is creating zk-proofs and blockchain
+  transaction
+* a python process that monitors the blockchain and saves relevant transaction data
+
+In production we run on a linode cloud server with apache2 as reverse proxy and certbot for ssl certificates.
+We use systemd to manage the algod node, the go webserver, and the python process.
+We use redeploy.sh to redeploy the webserver.
+
+In development we use air to launch the go web server and the js bundling with the command `air` from the project root and
+we use pipenv to launch the python process with the command `pipenv run python main.py` from the subscriber-service directory
+
+The project structure is the following (ignoring usual system files):
+
+./
+├── .air.toml               // air configuration file to run the webserver in development
+├── .tmp/
+├── avm/                    // go package to interact with Algorand blockchain
+├── config/                 // go package with configurations
+├── data/
+│   ├── internal/           // internal database files
+│   ├── txns/               // txns database files
+├── db/                     // go package to manage database
+├── dev-ssl-certificates    // contains ssl certificates for development web server
+├── frontend/
+│   ├── js                  // js source files
+│   ├── node_modules
+│   ├── package.json
+│   ├── static/             // js bundle files and other asset files (css, images, ...)
+│   ├── templates/          // html templates
+├── handlers/               // go go go package with http handlers
+├── memstore/               // go package to manage in memory store of user session data
+├── models/                 // go package with types for the project
+├── subscriber-service      // python service to monitor blockchain and update dababase
+├── zkp/                    // go package to create zk-proofs
+├── go.mod
+├── main.go
+├── redeploy.sh             // script to redeploy the webserver in production
+
+External js modules are:
+* @pera/connect : to manage connection to user algorand wallet
+* algosdk       : to manipulate algorand transaction objects
+* htmx          : to facilitate browser/server communication
+* htmx-ext-response-targets : to manage htmx response targets
+
+We use npm to install js libraries and esbuild for bundling js files for the browser
+
+We use two sqlite databses:
+* txn.db -> written by the python subscriber service, stores txn data from algod
+* internal.db -> written by the go webserver to store additional note data
+
+txns.db has the following tables:
+* txns: to store txns data
+    leaf_index      INTEGER PRIMARY KEY,	-- inserted note index in onchain merkle tree
+    commitment      BLOB NOT NULL,       	-- inserted note value in onchain merkle tree
+    txn_id          TEXT UNIQUE NOT NULL, 	-- id of first group txn that inserted the note
+    txn_type        INTEGER NOT NULL, 		-- 0 for deposits, 1 for withdrawal
+    address         TEXT NOT NULL,          -- address making deposit or withdrawal
+    amount          INTEGER NOT NULL,       -- amount deposited or withdrawn
+    from_nullifier  BLOB,     			    -- nullifier of note being spent for withdrawal,
+                                               NULL for deposits
+
+* stats: to store global stats, e.g., total deposits, withdrawals, fees, ...
+    key             TEXT PRIMARY KEY,       -- the stat, e.g., total_deposits
+    value           INTEGER,                -- the value of the stat
+
+* watermark: to store the block sync watermark with algod
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    value           INTEGER NOT NULL
+
+* root: to store the last merkle tree root
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    value           BLOB NOT NULL,
+    leaf_count      INTEGER NOT NULL
+
+internal.db has the following table:
+* notes (
+    leaf_index INTEGER PRIMARY KEY,			-- note index in onchain merkle tree
+	commitment BLOB NOT NULL,          		-- note value in onchain merkle tree
+	nullifier BLOB                          -- note nullifier
+	txn_id TEXT UNIQUE NOT NULL,	        -- id of first group txn that inserted the note
+)
+* unconfirmed_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    commitment BLOB NOT NULL,          		-- note Value in onchain merkle tree
+    nullifier BLOB,                         -- note nullifier
+    txn_id TEXT UNIQUE NOT NULL 			-- id of first group txn that will insert note
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+The key purpose of txn.db is to provide to the webserver the list of leaf_index and
+commitments so that the webserver can create merlke proof for withdrawals.
+This database will be written by the python process, while the go webserver will only read it.
+
+The key purpose of internal.db is to store nullifiers for compliance. This database will only
+be accessed by the go webserver.
+
+----------------------------------------------------------------------------------------------
