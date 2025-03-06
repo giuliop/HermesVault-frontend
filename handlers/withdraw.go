@@ -58,8 +58,9 @@ func WithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		case nil:
 			changeNote, err := models.GenerateChangeNote(amount, note)
 			if err != nil && err.Error() == "note amount too small" {
-				http.Error(w, "Note amount too small.<br>The maximum you can withdraw is "+
-					note.MaxWithdrawalAmount().Algostring+" algo", http.StatusUnprocessableEntity)
+				http.Error(w, "Note amount too small.<br>The maximum you can withdraw is <b>"+
+					note.MaxWithdrawalAmount().Algostring+" algo</b>",
+                    http.StatusUnprocessableEntity)
 				return
 			}
 			if err != nil {
