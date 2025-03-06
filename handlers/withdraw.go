@@ -57,6 +57,11 @@ func WithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case nil:
 			changeNote, err := models.GenerateChangeNote(amount, note)
+			if err != nil && err.Error() == "note amount too small" {
+				http.Error(w, "Note amount too small.<br>The maximum you can withdraw is "+
+					note.MaxWithdrawalAmount().Algostring+" algo", http.StatusUnprocessableEntity)
+				return
+			}
 			if err != nil {
 				log.Printf("Error generating new note: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -67,12 +72,17 @@ func WithdrawHandler(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Error executing success template: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
+			return
 		case sql.ErrNoRows:
+			log.Printf("Leaf index not found for commitment: %v",
+				withdrawData.FromNote.Commitment())
 			errorMsg = "The note you provided is not valid<br>"
 			http.Error(w, errorMsg, http.StatusUnprocessableEntity)
+			return
 		default:
 			errorMsg = "<b>Something went wrong.</b><br>Please try again."
 			http.Error(w, errorMsg, http.StatusInternalServerError)
+			return
 		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
