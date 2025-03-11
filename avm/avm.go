@@ -28,13 +28,23 @@ func init() {
 		client = devnetAlgodClient()
 		return
 	}
-	algodConfig, err := readAlgodConfigFromDir(config.AlgodPath)
-	if err != nil {
-		log.Fatalf("failed to read algod config: %v", err)
+
+	var err error
+	conf := &algodConfig{}
+
+	if strings.Contains(config.AlgodPath, "http") {
+		conf.URL = config.AlgodPath
+		conf.Token = config.AlgodToken
+	} else {
+		conf, err = readAlgodConfigFromDir(config.AlgodPath)
+		if err != nil {
+			log.Fatalf("failed to read algod config: %v", err)
+		}
 	}
+
 	client, err = algod.MakeClient(
-		algodConfig.URL,
-		algodConfig.Token,
+		conf.URL,
+		conf.Token,
 	)
 	if err != nil {
 		log.Fatalf("Failed to create algod client: %v", err)
@@ -81,9 +91,16 @@ func abiEncode(arg any, abiTypeName string) ([]byte, error) {
 // readAlgodConfigFromDir reads the algod URL and token from the given directory
 func readAlgodConfigFromDir(dir string) (*algodConfig, error) {
 	urlPath := filepath.Join(dir, "algod.net")
-	url, err := os.ReadFile(urlPath)
+	urlBytes, err := os.ReadFile(urlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read algod url: %v", err)
+	}
+	url := strings.TrimSpace(string(urlBytes))
+	if strings.HasPrefix(string(url), "[::]") {
+		// we have something like [::]:port_num, replace it with localhost
+		index := strings.LastIndex(string(url), ":")
+		port := url[index+1:]
+		url = "localhost:" + port
 	}
 	tokenPath := filepath.Join(dir, "algod.token")
 	token, err := os.ReadFile(tokenPath)
@@ -91,7 +108,7 @@ func readAlgodConfigFromDir(dir string) (*algodConfig, error) {
 		return nil, fmt.Errorf("failed to read algod token: %v", err)
 	}
 	return &algodConfig{
-		URL:   "http://" + strings.TrimSpace(string(url)),
+		URL:   "http://" + url,
 		Token: strings.TrimSpace(string(token)),
 	}, nil
 }

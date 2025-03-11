@@ -111,6 +111,9 @@ def main():
 
     if ALGOD_DIR == "":
         algod_address, algod_token = config.devnet_algod_config()
+    elif ALGOD_DIR.startswith("http"):
+        algod_address = ALGOD_DIR
+        algod_token = env["AlgodToken"]
     else:
         algod_address, algod_token = config.read_algod_config_from_dir(ALGOD_DIR)
 

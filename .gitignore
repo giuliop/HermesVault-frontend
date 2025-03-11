@@ -10,6 +10,8 @@ node_modules/
 # db files
 *.db*
 
+# local scripts
+.*.sh
 
 # bundle files in frontend/static
 frontend/static/*.bundle.*

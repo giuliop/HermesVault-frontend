@@ -33,6 +33,7 @@ var (
 	InternalDbPath  string
 	TxnsDbPath      string
 	AlgodPath       string
+	AlgodToken      string
 )
 
 func init() {
@@ -45,6 +46,7 @@ func init() {
 	InternalDbPath = env["InternalDbPath"]
 	TxnsDbPath = env["TxnsDbPath"]
 	AlgodPath = env["AlgodPath"]
+	AlgodToken = env["AlgodToken"]
 }
 
 // LoadEnv reads a set of key-value pairs from a file and returns them as a map
