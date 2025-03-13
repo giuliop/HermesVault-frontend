@@ -164,8 +164,10 @@ def main():
     # 4. Print out the results.
     if results:
         print("Unspent funds:")
+        # amount is microAlgos; convert to Algos for display
         for r in results:
-            print(f"Type: {r['type']}, Amount: {r['amount']}, Leaf Index: {r['leaf_index']}, "
+            algo_amount = r["amount"] / 1e6
+            print(f"Type: {r['type']}, Amount: {algo_amount}, Leaf Index: {r['leaf_index']}, "
                   f"Secret Note: {r['secret_note']}")
     else:
         print("No unspent deposits or change deposits found for address", address)
