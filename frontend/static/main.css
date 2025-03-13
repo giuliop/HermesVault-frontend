@@ -85,9 +85,8 @@ textarea::placeholder {
 }
 
 img.centered {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    display: block;
+    margin: 0 auto;;
 }
 
 .boxed-text {
