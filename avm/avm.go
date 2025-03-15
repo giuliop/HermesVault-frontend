@@ -103,12 +103,12 @@ func readAlgodConfigFromDir(dir string) (*algodConfig, error) {
 		url = "localhost:" + port
 	}
 	tokenPath := filepath.Join(dir, "algod.token")
-	token, err := os.ReadFile(tokenPath)
+	tokenBytes, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read algod token: %v", err)
 	}
 	return &algodConfig{
 		URL:   "http://" + url,
-		Token: strings.TrimSpace(string(token)),
+		Token: strings.TrimSpace(string(tokenBytes)),
 	}, nil
 }
