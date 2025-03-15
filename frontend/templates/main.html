@@ -63,6 +63,7 @@
           hx-indicator="#spinner"
           hx-swap="show:#errorBox:top"
           hx-on::config-request="behaviors.Trim.restoreAll(event)"
+          onsubmit="behaviors.Form.disableSubmitButton(event)"
           data-wallet-form>
         <p class="row">
             <label for="depositAmount">
@@ -128,6 +129,7 @@
           hx-on::config-request="behaviors.Trim.restoreAll(event)"
           hx-indicator="#spinner"
           hx-swap="show:#errorBox:top"
+          onsubmit="behaviors.Form.disableSubmitButton(event)"
 		>
         <p class="row">
             <label for="withdrawAmount">

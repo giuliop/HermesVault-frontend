@@ -94,10 +94,48 @@ const Style = {
     }
 }
 
+const Form = {
+    /**
+     * Disable a submit button after click to prevent multiple submissions
+     * The button will be re-enabled when the response comes back
+     */
+    disableSubmitButton: function(event) {
+        const button = event.submitter;
+        if (button && button.type === 'submit') {
+            button.disabled = true;
+            button.dataset.originalText = button.innerText;
+            button.innerText = 'Processing...';
+
+            // Re-enable the button when the request is complete
+            document.addEventListener('htmx:afterRequest', function reEnable(e) {
+                if (e.detail.elt === event.target) { // If this is our form's response
+                    button.disabled = false;
+                    if (button.dataset.originalText) {
+                        button.innerText = button.dataset.originalText;
+                    }
+                    document.removeEventListener('htmx:afterRequest', reEnable);
+                }
+            });
+
+            // Also re-enable on error to allow retrying
+            document.addEventListener('htmx:responseError', function reEnableOnError(e) {
+                if (e.detail.elt === event.target) { // If this is our form's response
+                    button.disabled = false;
+                    if (button.dataset.originalText) {
+                        button.innerText = button.dataset.originalText;
+                    }
+                    document.removeEventListener('htmx:responseError', reEnableOnError);
+                }
+            });
+        }
+    }
+}
+
 const behaviors = {
     Trim: Trim,
     Show: Show,
     Style: Style,
+    Form: Form
 };
 
 window.behaviors = behaviors;

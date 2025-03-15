@@ -94,6 +94,7 @@ document.addEventListener('click', async (event) => {
             const signedTxnBase64 = uint8ArrayToBase64(signedTxnBinary);
             document.querySelector('[data-wallet-signed-txn-input]').value = signedTxnBase64;
             const form = event.target.closest('form');
+        event.target.disabled = true;
             htmx.trigger(form, 'submit');
 
         } catch (error) {
@@ -102,6 +103,7 @@ document.addEventListener('click', async (event) => {
             errorBox.innerHTML = (
                 "Error signing the transaction, please try again");
             htmx.trigger(errorBox, 'htmx:after-swap');
+            event.target.disabled = false;
         }
     };
 });
