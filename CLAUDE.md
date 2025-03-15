@@ -20,6 +20,10 @@
 - **Variables**: Use short variable names for short scopes
 - **Project Structure**: Follow standard Go project layout patterns
 
+## Git Workflow
+- **Commit Messages**: Use descriptive commit messages without Claude attribution
+- **Commit Format**: Start with a concise summary, then a blank line, followed by details if needed
+
 ## Tech Stack
 - Frontend: esbuild, htmx, missing.css, Pera wallet integration (@perawallet/connect)
 - Backend: Go 1.23, SQLite (two databases: txns.db and internal.db)
