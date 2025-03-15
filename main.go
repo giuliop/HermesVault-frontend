@@ -17,29 +17,6 @@ import (
 	"github.com/giuliop/HermesVault-frontend/handlers"
 )
 
-// securityHeadersMiddleware adds security headers to all responses
-func securityHeadersMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Content Security Policy
-		w.Header().Set("Content-Security-Policy",
-			"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; frame-ancestors 'none'")
-
-		// Prevent MIME type sniffing
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-
-		// Prevent clickjacking
-		w.Header().Set("X-Frame-Options", "DENY")
-
-		// Referrer Policy
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-
-		// Permissions Policy
-		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	// Parse the -dev flag
 	dev := flag.Bool("dev", false, "run in development mode")
@@ -54,30 +31,24 @@ func main() {
 
 	templates.InitTemplates()
 
-	// Create a new mux to apply middleware
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if err := templates.Main.Execute(w, nil); err != nil {
 			log.Printf("Error executing main template: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	})
 
-	mux.HandleFunc("/deposit", handlers.DepositHandler)
-	mux.HandleFunc("/withdraw", handlers.WithdrawHandler)
-	mux.HandleFunc("/confirm-deposit", handlers.ConfirmDepositHandler)
-	mux.HandleFunc("/confirm-withdraw", handlers.ConfirmWithdrawHandler)
-	mux.HandleFunc("/stats", handlers.StatsHandler)
+	http.HandleFunc("/deposit", handlers.DepositHandler)
+	http.HandleFunc("/withdraw", handlers.WithdrawHandler)
+	http.HandleFunc("/confirm-deposit", handlers.ConfirmDepositHandler)
+	http.HandleFunc("/confirm-withdraw", handlers.ConfirmWithdrawHandler)
+	http.HandleFunc("/stats", handlers.StatsHandler)
 
 	// Serve static files from the "static" directory
-	mux.Handle("/static/", http.StripPrefix("/static/",
+	http.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("./frontend/static/"))))
 
 	var server *http.Server
-
-	// Apply security headers middleware to all routes
-	secureHandler := securityHeadersMiddleware(mux)
 
 	// Determine the mode and configure the server accordingly
 	if *dev {
@@ -91,7 +62,6 @@ func main() {
 		// Create a custom HTTPS server
 		server = &http.Server{
 			Addr: ":" + config.DevelopmentPort,
-			Handler: secureHandler,
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 			},
@@ -109,7 +79,6 @@ func main() {
 		// Production mode, we serve HTTP to a reverse proxy
 		server = &http.Server{
 			Addr: ":" + config.ProductionPort,
-			Handler: secureHandler,
 		}
 
 		log.Printf("Server running in production mode on port %s\n",
