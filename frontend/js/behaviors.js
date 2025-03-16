@@ -97,34 +97,33 @@ const Style = {
 const Form = {
     /**
      * Disable a submit button after click to prevent multiple submissions
-     * The button will be re-enabled when the response comes back
+     * The button will be re-enabled when the response comes back (useful if errors come back)
+     * or after 1 minute as a fallback
      */
-    disableSubmitButton: function(event) {
+    disableSubmitButton: function (event) {
         const button = event.submitter;
         if (button && button.type === 'submit') {
             button.disabled = true;
             button.dataset.originalText = button.innerText;
             button.innerText = 'Processing...';
 
+            function restoreButton() {
+                button.disabled = false;
+                if (button.dataset.originalText) {
+                    button.innerText = button.dataset.originalText;
+                }
+                document.removeEventListener('htmx:afterRequest', reEnable);
+            }
+
+            // Create timeout to re-enable after 1 minute as a fallback
+            // This will also avoid memory leaks if the user navigates away
+            const timeoutId = setTimeout(restoreButton, 60000);
+
             // Re-enable the button when the request is complete
             document.addEventListener('htmx:afterRequest', function reEnable(e) {
                 if (e.detail.elt === event.target) { // If this is our form's response
-                    button.disabled = false;
-                    if (button.dataset.originalText) {
-                        button.innerText = button.dataset.originalText;
-                    }
-                    document.removeEventListener('htmx:afterRequest', reEnable);
-                }
-            });
-
-            // Also re-enable on error to allow retrying
-            document.addEventListener('htmx:responseError', function reEnableOnError(e) {
-                if (e.detail.elt === event.target) { // If this is our form's response
-                    button.disabled = false;
-                    if (button.dataset.originalText) {
-                        button.innerText = button.dataset.originalText;
-                    }
-                    document.removeEventListener('htmx:responseError', reEnableOnError);
+                    restoreButton();
+                    clearTimeout(timeoutId);
                 }
             });
         }
