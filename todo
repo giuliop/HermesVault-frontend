@@ -1,22 +1,16 @@
 Backend
-* Review logging
-* Review error handling
-* Evaluate in memory store for leaves
+* Review logging and error handling
 
 Subscriber service
-* Review error handling
+* Review logging and error handling
 * Use an archival node as backup if watermark behind algod
 
 DB
-* review incoming data validation
-* review encryption
-* review indexes
+* add encryption for nullifiers
 
 UI
 * fix back button
-* Prevent submit buttons to fire again before receiving response
 * Review error messages to user
-* Minify all css/js files
 
 Testing
 * Add automated tests

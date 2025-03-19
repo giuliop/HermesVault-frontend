@@ -179,6 +179,9 @@ def initialize_db(db_file: str) -> None:
     # Initialize root to empty bytes if not already present
     cursor.execute("INSERT OR IGNORE INTO roots (id, value, leaf_count) VALUES (1, x'', 0)")
 
+    # Create index on commitment for faster lookups
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_txns_commitment ON txns(commitment)")
+
     db_conn.commit()
     logger.warning("Database initialized successfully")
 
