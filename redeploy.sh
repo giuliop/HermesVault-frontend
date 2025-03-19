@@ -18,6 +18,8 @@ go build -o ./.tmp/main .
 
 # Restart the Go webserver service
 sudo systemctl restart hermesvault-frontend-go-webserver
+# Restart the subscriber service
+sudo systemctl restart hermesvault-frontend-python-subscriber
 
 # Allow time for the service to come online
 sleep 5
