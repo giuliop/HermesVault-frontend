@@ -9,7 +9,6 @@ DB
 * add encryption for nullifiers
 
 UI
-* fix back button
 * Review error messages to user
 
 Testing

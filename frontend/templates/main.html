@@ -10,14 +10,18 @@
     <script src="static/htmx.bundle.js"></script>
     <script src="static/wallet.bundle.js" type="module" defer></script>
     <script src="static/behaviors.bundle.js" type="module" defer></script>
+    <script>
+        // Handle history (back/forward buttons)
+        window.addEventListener('popstate', function(event) {
+            behaviors.History.load(event, document.getElementById('ui'), 'deposit');
+        });
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body hx-boost="true"
       hx-ext="response-targets">
-      <div class="demobar">
-            TESTNET DEMO
-    </div>
+    <div class="demobar">TESTNET DEMO</div>
     <h1 class="title">Hermes Vault</h1>
     <div id="ui"
          hx-get="deposit"
@@ -38,6 +42,7 @@
 
 {{define "tabButton"}}
 <button hx-get="{{.url}}"
+        hx-on:click="behaviors.History.add('{{.url}}')"
         {{if eq .selected .url}}class="selected" disabled{{end}}
         role="tab"
         aria-selected="{{if eq .selected .url}}true{{else}}false{{end}}"
@@ -56,7 +61,7 @@
 
 {{define "depositForm"}}
 {{template "tabList" "deposit"}}
-<div idString="tab-content" class="tab-content" role="tabpanel" data-wallet>
+<div id="tab-content" class="tab-content" role="tabpanel" data-wallet>
 	<h2>Deposit</h2>
 	<form hx-post="deposit"
           hx-target-error="#errorBox"

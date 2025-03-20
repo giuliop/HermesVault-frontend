@@ -130,11 +130,37 @@ const Form = {
     }
 }
 
+const History = {
+    /**
+     * Add the path to the history
+     */
+    add: function (path) {
+        window.history.pushState({ path: path }, '', window.location.href);
+        // console.log('Added path to history:', path);
+    },
+
+    /**
+     * Load the path from the history into the target element
+     * Typically triggered by the `popstate` event
+     */
+    load: function (event, target, defaultPath) {
+        let path = (event.state && event.state.path) || defaultPath;
+        if (target && path) {
+            // console.log("Loading path from history:", path);
+            htmx.ajax('GET', path, {
+                target: target,
+                swap: target.getAttribute('hx-swap') || 'innerHTML',
+            });;
+        }
+    }
+}
+
 const behaviors = {
     Trim: Trim,
     Show: Show,
     Style: Style,
-    Form: Form
+    Form: Form,
+    History: History,
 };
 
 window.behaviors = behaviors;
