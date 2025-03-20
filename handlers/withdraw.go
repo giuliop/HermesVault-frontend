@@ -15,6 +15,12 @@ func WithdrawHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Cache-Control", config.CacheControl)
+
+		// Check if this is an HTMX request, if not, render the full page
+		if RenderFullPageIfNotHtmx(w, r, "withdraw") {
+			return
+		}
+
 		if err := templates.Withdraw.Execute(w, nil); err != nil {
 			log.Printf("Error executing withdraw template: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -60,7 +66,7 @@ func WithdrawHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil && err.Error() == "note amount too small" {
 				http.Error(w, "Note amount too small.<br>The maximum you can withdraw is <b>"+
 					note.MaxWithdrawalAmount().Algostring+" algo</b>",
-                    http.StatusUnprocessableEntity)
+					http.StatusUnprocessableEntity)
 				return
 			}
 			if err != nil {

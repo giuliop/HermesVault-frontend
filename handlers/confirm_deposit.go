@@ -16,6 +16,11 @@ import (
 )
 
 func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		log.Printf("Error parsing form: %v", err)
 		http.Error(w, modalDepositFailed("Bad request"), http.StatusBadRequest)

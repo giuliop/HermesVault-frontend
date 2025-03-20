@@ -24,7 +24,7 @@
     <div class="demobar">TESTNET DEMO</div>
     <h1 class="title">Hermes Vault</h1>
     <div id="ui"
-         hx-get="deposit"
+         hx-get="{{if .Path}}{{.Path}}{{else}}deposit{{end}}"
          hx-trigger="load delay:100ms"
          hx-target="#ui"
          hx-swap="innerHTML"

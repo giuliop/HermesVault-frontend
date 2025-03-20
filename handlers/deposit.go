@@ -17,6 +17,12 @@ func DepositHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Cache-Control", config.CacheControl)
+
+		// Check if this is an HTMX request, if not, render the full page
+		if RenderFullPageIfNotHtmx(w, r, "deposit") {
+			return
+		}
+
 		if err := templates.Deposit.Execute(w, nil); err != nil {
 			log.Printf("Error executing deposit template: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

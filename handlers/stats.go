@@ -27,6 +27,11 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if this is an HTMX request, if not, render the full page
+	if RenderFullPageIfNotHtmx(w, r, "stats") {
+		return
+	}
+
 	// Get stats from the database
 	statData, err := db.GetStats()
 	if err != nil {
