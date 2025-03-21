@@ -115,17 +115,19 @@ const Form = {
                 document.removeEventListener('htmx:afterRequest', reEnable);
             }
 
+            function reEnable(e) {
+                if (e.detail.elt === event.target) {
+                    restoreButton();
+                    clearTimeout(timeoutId);
+                }
+            }
+
             // Create timeout to re-enable after 1 minute as a fallback
             // This will also avoid memory leaks if the user navigates away
             const timeoutId = setTimeout(restoreButton, 60000);
 
             // Re-enable the button when the request is complete
-            document.addEventListener('htmx:afterRequest', function reEnable(e) {
-                if (e.detail.elt === event.target) { // If this is our form's response
-                    restoreButton();
-                    clearTimeout(timeoutId);
-                }
-            });
+            document.addEventListener('htmx:afterRequest', reEnable);
         }
     }
 }
