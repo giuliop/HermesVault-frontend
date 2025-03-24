@@ -1,9 +1,50 @@
 #!/usr/bin/env python3
 import argparse
+import binascii
+import getpass
 import sqlite3
+import sys
+
+import nacl.public
 
 INTERNAL_DB_PATH = "../data/internal/internal.db"
 TXNS_DB_PATH = "../data/txns/txns.db"
+
+def decrypt_nullifier(encrypted_nullifier, private_key_hex):
+    """
+    Decrypt an encrypted nullifier using the provided private key.
+    Format of encrypted data: [ephemeral_public_key][nonce][ciphertext]
+    """
+    if encrypted_nullifier is None:
+        return None
+
+    if len(encrypted_nullifier) < 56:  # 32 (public key) + 24 (nonce)
+        # This nullifier might not be encrypted yet
+        return encrypted_nullifier
+
+    try:
+        # Convert hex private key to bytes
+        private_key_bytes = binascii.unhexlify(private_key_hex)
+        private_key = nacl.public.PrivateKey(private_key_bytes)
+
+        # Extract the ephemeral public key (first 32 bytes)
+        ephemeral_pub_key_bytes = encrypted_nullifier[:32]
+        ephemeral_pub_key = nacl.public.PublicKey(ephemeral_pub_key_bytes)
+
+        # Extract the nonce (next 24 bytes)
+        nonce = encrypted_nullifier[32:56]
+
+        # Extract the ciphertext (remaining bytes)
+        ciphertext = encrypted_nullifier[56:]
+
+        # Create the box for decryption
+        box = nacl.public.Box(private_key, ephemeral_pub_key)
+
+        # Decrypt the nullifier
+        return box.decrypt(ciphertext, nonce)
+    except Exception as e:
+        print(f"Error decrypting nullifier: {e}")
+        return encrypted_nullifier  # Return the original encrypted data on error
 
 def extract_amount(secret_note_text):
     """
@@ -16,7 +57,7 @@ def extract_amount(secret_note_text):
     amount = int(hex_part, 16)
     return amount
 
-def follow_change_chain(current_note, txns_cursor, internal_cursor):
+def follow_change_chain(current_note, txns_cursor, internal_cursor, private_key_hex):
     """
     Iteratively follows the change deposit chain starting from the given note.
     For the current note, it checks if a withdrawal exists that spent it.
@@ -29,10 +70,13 @@ def follow_change_chain(current_note, txns_cursor, internal_cursor):
     or None if the chain ends with a fully spent deposit or a zero change amount.
     """
     while True:
+        # Decrypt the nullifier if it's encrypted
+        decrypted_nullifier = decrypt_nullifier(current_note["nullifier"], private_key_hex)
+
         # Look for a withdrawal that spent the current note.
         txns_cursor.execute(
             "SELECT leaf_index FROM txns WHERE txn_type = 1 AND from_nullifier = ?",
-            (current_note["nullifier"],)
+            (decrypted_nullifier,)
         )
         withdrawal = txns_cursor.fetchone()
         if not withdrawal:
@@ -68,10 +112,13 @@ def follow_change_chain(current_note, txns_cursor, internal_cursor):
                       f"{change_leaf}")
             return None
 
+        # Decrypt the change note nullifier
+        decrypted_change_nullifier = decrypt_nullifier(change_note["nullifier"], private_key_hex)
+
         # Check if this change deposit note has been spent.
         txns_cursor.execute(
             "SELECT leaf_index FROM txns WHERE txn_type = 1 AND from_nullifier = ?",
-            (change_note["nullifier"],)
+            (decrypted_change_nullifier,)
         )
         next_withdrawal = txns_cursor.fetchone()
         if not next_withdrawal:
@@ -86,8 +133,23 @@ def main():
         description="Query unspent deposits and unspent change deposits for an Algorand address."
     )
     parser.add_argument("address", help="Algorand address to query")
+    parser.add_argument("--key", help="Private key in hex format for decryption (if not provided, will prompt)")
     args = parser.parse_args()
     address = args.address
+
+    # Get the private key for decryption
+    private_key_hex = args.key
+    if not private_key_hex:
+        private_key_hex = getpass.getpass("Enter private key (hex format) for nullifier decryption: ")
+
+    # Validate the key format
+    try:
+        if len(binascii.unhexlify(private_key_hex)) != 32:
+            print("Error: Private key must be 32 bytes (64 hex characters)")
+            sys.exit(1)
+    except binascii.Error:
+        print("Error: Private key must be a valid hex string")
+        sys.exit(1)
 
     # Connect to txns.db (for deposits/withdrawals).
     txns_conn = sqlite3.connect(TXNS_DB_PATH)
@@ -124,12 +186,15 @@ def main():
             print(f"WARNING: No note found in internal.db for leaf_index {leaf_index}")
             continue
 
+        # Decrypt the nullifier for comparison
+        decrypted_nullifier = decrypt_nullifier(note["nullifier"], private_key_hex)
+
         # 3. Check if this deposit has been spent.
         txns_cursor.execute("""
             SELECT leaf_index
             FROM txns
             WHERE txn_type = 1 AND from_nullifier = ?
-        """, (note["nullifier"],))
+        """, (decrypted_nullifier,))
         withdrawal = txns_cursor.fetchone()
 
         if not withdrawal:
@@ -148,7 +213,7 @@ def main():
             })
         else:
             # Deposit was spent; follow the change deposit chain.
-            change_info = follow_change_chain(note, txns_cursor, internal_cursor)
+            change_info = follow_change_chain(note, txns_cursor, internal_cursor, private_key_hex)
             if change_info:
                 change_amount, change_leaf, secret_note = change_info
                 results.append({
