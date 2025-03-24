@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/giuliop/HermesVault-frontend/db/encrypt"
 	"github.com/giuliop/HermesVault-frontend/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func RegisterUnconfirmedNote(n *models.Note) (int64, error) {
+	// Encrypt the nullifier before storing it
+	encryptedNullifier, err := encrypt.Encrypt(n.Nullifier())
+	if err != nil {
+		return 0, fmt.Errorf("failed to encrypt nullifier: %w", err)
+	}
+
 	sql := `INSERT INTO unconfirmed_notes (
 		commitment,
 		nullifier,
@@ -18,7 +25,7 @@ func RegisterUnconfirmedNote(n *models.Note) (int64, error) {
 		) VALUES (?, ?, ?)`
 	result, err := internalDb.Exec(sql,
 		n.Commitment(),
-		n.Nullifier(),
+		encryptedNullifier,
 		n.TxnID,
 	)
 	if err != nil {
@@ -39,8 +46,13 @@ func SaveNote(n *models.Note) error {
 		return fmt.Errorf("malformed confirmed note: %v", n)
 	}
 
+	encryptedNullifier, err := encrypt.Encrypt(n.Nullifier())
+	if err != nil {
+		return fmt.Errorf("failed to encrypt nullifier: %w", err)
+	}
+
 	sql := `INSERT INTO notes (leaf_index, commitment, txn_id, nullifier) VALUES (?, ?, ?, ?)`
-	_, err := internalDb.Exec(sql, n.LeafIndex, n.Commitment(), n.TxnID, n.Nullifier())
+	_, err = internalDb.Exec(sql, n.LeafIndex, n.Commitment(), n.TxnID, encryptedNullifier)
 	if err != nil {
 		return fmt.Errorf("failed to insert note: %w", err)
 	}
@@ -115,7 +127,7 @@ func Close() {
 	}
 }
 
-// GetStas returns the statistics from the database
+// GetStats returns the statistics from the database
 func GetStats() (*models.StatData, error) {
 	statsSql := `SELECT
 		(SELECT value FROM stats WHERE key = 'total_deposits'),
