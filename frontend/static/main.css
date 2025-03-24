@@ -219,6 +219,7 @@ img.centered {
 
 .link-bar a:hover {
     color: black;
+    text-decoration: underline;
 }
 
 .stats-table {
