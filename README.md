@@ -16,7 +16,7 @@ Once connected, you'll see your connected address in `From` field. If you need t
 
 A confirmation screen will appear with the secret note <b>THAT YOU MUST SAVE</b> to withdraw your tokens in the future. You will have to paste it back in the appropriate section to proceed, to make sure you have copied it.
 
-If you lose that note, nobody will be able to help you retrieve your tokens.
+IF YOU LOSE THAT NOTE, NOBODY WILL BE ABLE TO HELP YOU RETRIEVE YOUR TOKENS !
 
 Now click the `Confirm` button and you will be asked to open your Pera wallet and authorize the transaction. Note that the transaction fee will be 0.042 algo since it is a "heavy" transaction group which requires a lot of computation on the AVM to validate the zero knowledge proof involved.
 
@@ -50,9 +50,9 @@ Of that fee, ~0.1 algo are needed to cover transaction and storage fees, while t
 
 While the HermesVault smart contracts are fully permissionless and decentralized, this frontend is a hosted website and a centralized entity, so it is subject to the laws and regulations of the jurisdiction it operates in.
 
-For that purpose, the frontend stores receipts that could be used to link back specific withdrawals to the original deposits if so compelled by law enforcement.
+For that purpose, the frontend stores receipts that could be used to link back specific withdrawals to the original deposits if so compelled by law enforcement. These receitps are encrypted with a secret key not stored on the server, so even if the database is compromised or leaked this information is safe.
 
-In any case, the frontend can NEVER access users' funds, which are always 100% controlled by the users only.
+In any case, the frontend can NEVER access users' funds, which are always 100% controlled by the users only. That's why if you lose your secret note nobody can help you retrieve your tokens.
 
 There are three ways you can lose your funds:
 1) You lose your secret note

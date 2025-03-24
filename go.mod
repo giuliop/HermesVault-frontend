@@ -8,6 +8,8 @@ require (
 	github.com/consensys/gnark-crypto v0.15.0
 	github.com/giuliop/algoplonk v0.1.8
 	github.com/mattn/go-sqlite3 v1.14.24
+	golang.org/x/crypto v0.32.0
+	golang.org/x/term v0.28.0
 )
 
 require (
@@ -25,7 +27,6 @@ require (
 	github.com/ronanh/intcomp v1.1.0 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
