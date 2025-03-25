@@ -77,6 +77,34 @@ const Show = {
         else {
             f();
         }
+    },
+
+    /**
+     * Show the email address in the supplied element ID
+     */
+    email: function (elemId) {
+        // Email obfuscation with JavaScript and character encoding
+        window.addEventListener('DOMContentLoaded', function () {
+            const displayEmail = function () {
+                // Email components for info@...
+                const username = String.fromCharCode(105, 110, 102, 111); // info
+                const separator = String.fromCharCode(64);
+                const domain = String.fromCharCode(104, 101, 114, 109, 101, 115, 118, 97, 117, 108, 116);
+                const dot = String.fromCharCode(46);
+                const tld = String.fromCharCode(111, 114, 103);
+
+                const email = username + separator + domain + dot + tld;
+                const html = "<a href='mailto:" + email + "'>" + email + "</a>";
+
+                // Assemble the email with a slight delay to further confuse bots
+                setTimeout(function () {
+                    document.getElementById(elemId).innerHTML = html
+                }, 100);
+            };
+
+            // Call the function on page load but with a small delay
+            setTimeout(displayEmail, 100);
+        });;
     }
 }
 

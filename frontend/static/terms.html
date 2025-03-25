@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html class="-no-dark-theme">
+<head>
+  <title>HermesVault Terms &amp; Conditions</title>
+  <link rel="stylesheet" href="missing.bundle.css">
+  <link rel="stylesheet" href="main.css?v=3">
+  <script src="behaviors.bundle.js" type="module"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+  <main>
+    <h1 class="title">TERMS &amp; CONDITIONS</h1>
+    <hr>
+    <strong>Effective Date:</strong> April 1, 2025
+    <br>
+    <strong>Version:</strong>1.0
+
+    <ol class="terms-list">
+      <li>
+        <h2>Service as a Frontend</h2>
+        <p>
+          HermesVault is a tool that lets you interact with smart contracts on the Algorand blockchain. We have no ability to change or control how those smart contracts or the blockchain work.
+        </p>
+      </li>
+
+      <li>
+        <h2>Use at Your Own Risk, No Warranties, and Limitation of Liability</h2>
+        <p>
+          HermesVault is provided "as is" without any guarantees. We do not promise that it will always be error-free, secure, or available. By using HermesVault, you accept all risks and agree that the service operator is not responsible for any loss of funds or other issues that may occur. Under no circumstances will the service operator be liable for any direct, indirect, incidental, or consequential damages arising from your use of the service.
+        </p>
+      </li>
+
+      <li>
+        <h2>Data Handling</h2>
+        <p>
+          HermesVault does not collect or save any personal user data and does not use cookies. We do store encrypted receipts that can link deposits and withdrawals. These receipts are only disclosed to law enforcement if required by local law, and because they are encrypted, they cannot be accessed even if our system is breached.
+        </p>
+      </li>
+
+      <li>
+        <h2>Modifications to the Service and Terms</h2>
+        <p>
+          We may update HermesVault or these Terms from time to time. Updates will be posted on our website, and your continued use of the service means you accept those changes.
+        </p>
+      </li>
+
+      <li>
+        <h2>User Eligibility</h2>
+        <p>
+          By using HermesVault, you confirm that you are legally allowed to use this service and that its use is not prohibited in your jurisdiction.
+        </p>
+      </li>
+
+      <li>
+        <h2>Indemnification</h2>
+        <p>
+          You agree to indemnify and hold harmless the service operator from any claims, losses, or damages arising out of your use of HermesVault.
+        </p>
+      </li>
+    </ol>
+
+    <hr>
+    <div class="bg border center link-bar">
+       <a class="underlined" onclick="document.querySelectorAll('dialog')[0].showModal()">
+         Contact us
+        </a>
+    </div>
+
+    <dialog class="modal">
+      <h3>Write to:</h3>
+      <p id="email">
+        <noscript>Please enable JavaScript to view the email address.</noscript>
+      </p>
+      <button onclick="this.parentElement.close()">Close</button>
+    </dialog>
+    <script type="module">
+      behaviors.Show.email("email");
+    </script>
+
+    <div class="footer">
+      &copy; 2025 HermesVault. All rights reserved.
+    </div>
+
+  </main>
+</body>
+</html>

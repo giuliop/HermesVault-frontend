@@ -222,6 +222,21 @@ img.centered {
     text-decoration: underline;
 }
 
+.underlined {
+    text-decoration: underline;
+}
+
+.underlined:hover {
+    font-weight: bold;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 30px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
 .stats-table {
     margin: 20px auto;
     border-collapse: collapse;

@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="static/missing.bundle.css">
     <link rel="stylesheet" href="static/main.css?v=3">
     <script src="static/htmx.bundle.js"></script>
-    <script src="static/wallet.bundle.js" type="module" defer></script>
-    <script src="static/behaviors.bundle.js" type="module" defer></script>
+    <script src="static/wallet.bundle.js" type="module"></script>
+    <script src="static/behaviors.bundle.js" type="module"></script>
     <script>
         // Handle history (back/forward buttons)
         window.addEventListener('popstate', function(event) {
@@ -33,8 +33,26 @@
     <div class="link-bar">
         <a href="https://github.com/giuliop/HermesVault">about</a>
         |
-        <a href="https://github.com/giuliop/HermesVault-frontend/blob/main/README.md">how to use</a>
+        <a href="https://github.com/giuliop/HermesVault-frontend/blob/main/README.md">
+            how to use
+        </a>
+        |
+        <a onclick="document.querySelectorAll('dialog')[0].showModal()">
+            contacts
+        </a>
     </div>
+
+    <dialog class="modal">
+        <h3>Write to:</h3>
+        <p id="email">
+            <noscript>Please enable JavaScript to view the email address.</noscript>
+        </p>
+        <button onclick="this.parentElement.close()">Close</button>
+    </dialog>
+    <script type="module">
+        behaviors.Show.email("email");
+    </script>
+
 </body>
 
 </html>
