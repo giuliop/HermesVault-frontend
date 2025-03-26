@@ -222,6 +222,14 @@ img.centered {
     text-decoration: underline;
 }
 
+.link-bar a img {
+    transition: transform 0.3s ease;
+}
+
+.link-bar a:hover img {
+    transform: scale(1.5);
+}
+
 .underlined {
     text-decoration: underline;
 }
