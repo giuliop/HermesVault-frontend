@@ -227,7 +227,7 @@ img.centered {
 }
 
 .link-bar a:hover img {
-    transform: scale(1.5);
+    transform: scale(1.3);
 }
 
 .underlined {
