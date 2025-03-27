@@ -19,6 +19,10 @@ h1.title {
     margin-bottom: 50px;
 }
 
+h1.title:has(+ div figure) {
+    margin-bottom: 20px;
+}
+
 .tab-list {
     justify-content: space-between;
 }
