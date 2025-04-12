@@ -196,13 +196,13 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 		path[i] = v
 	}
 
-	recipient, err := types.DecodeAddress(string(w.Address))
+	withdrawalRecipient, err := types.DecodeAddress(string(w.Address))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode recipient address: %v", err)
 	}
 
 	assignment := &circuits.WithdrawalCircuit{
-		Recipient:  recipient[:],
+		Recipient:  withdrawalRecipient[:],
 		Withdrawal: w.Amount.Microalgos,
 		Fee:        w.Fee.Microalgos,
 		Commitment: w.ChangeNote.Commitment(),
@@ -227,25 +227,27 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 		return nil, fmt.Errorf("failed to get method %s: %v",
 			config.WithDrawalMethodName, err)
 	}
-	withdrawalArgs := [][]byte{withdrawalMethod.GetSelector()}
-	withdrawalArgs = append(withdrawalArgs, zkArgs...)
+	args := [][]byte{withdrawalMethod.GetSelector()}
+	args = append(args, zkArgs...)
 
-	recipientPositionInForeignAccounts := 2
-	withdrawalArgs = append(withdrawalArgs, []byte{byte(recipientPositionInForeignAccounts)})
+	foreignAccounts := []string{withdrawalRecipient.String()}
+	withdrawalRecipientPosInForeignAccounts := 1
+	args = append(args, []byte{byte(withdrawalRecipientPosInForeignAccounts)})
 
-	// TODO: let the user set noChange and extraTxnFee
+	// the fee recipient is the TSS account which will pay the fees
+	feeRecipient := App.TSS.Address
+	foreignAccounts = append(foreignAccounts, feeRecipient.String())
+	feeRecipientPosInForeignAccounts := 2
+	args = append(args, []byte{byte(feeRecipientPosInForeignAccounts)})
+
+	// TODO: let the user set noChange
 	noChange := false
-	extraTxnFee := 0
 	noChangeAbi, err := abiEncode(noChange, "bool")
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode noChange: %v", err)
 	}
-	extraTxnFeeAbi, err := abiEncode(extraTxnFee, "uint64")
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode extraTxnFee: %v", err)
-	}
-	withdrawalArgs = append(withdrawalArgs, noChangeAbi)
-	withdrawalArgs = append(withdrawalArgs, extraTxnFeeAbi)
+
+	args = append(args, noChangeAbi)
 
 	algod := algodClient()
 	sp, err := algod.SuggestedParams().Do(context.Background())
@@ -259,8 +261,8 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 	// txn1 is the app call signed by the withdrawal verifier with the zk proof
 	txn1, err := transaction.MakeApplicationNoOpTxWithBoxes(
 		App.Id,
-		withdrawalArgs,
-		[]string{App.TSS.Address.String(), recipient.String()}, // foreignAccounts
+		args,
+		foreignAccounts,
 		nil, nil, // foreignApps, foreignAssets
 		[]types.AppBoxReference{
 			{AppID: App.Id, Name: w.FromNote.Nullifier()},
@@ -279,8 +281,8 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 		return nil, fmt.Errorf("failed to make application call txn: %v", err)
 	}
 
-	// now we add noop transactions signed by the TSS account, the first to pay the fees
-	// and the others to meet the opcode budget
+	// now we add noop transactions signed by the feeRecipient,
+	// the first to pay the fees and the others to meet the opcode budget
 	noopMethod, err := App.Schema.Contract.GetMethodByName(config.NoOpMethodName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get method %s: %v", config.NoOpMethodName, err)
@@ -289,14 +291,14 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 	txns := []types.Transaction{txn1}
 	txnNeeded := config.VerifierTopLevelTxnNeeded - 1 // 1 transaction already added
 
-	for i := 0; i < txnNeeded; i++ {
+	for i := range txnNeeded {
 		args := [][]byte{noopMethod.GetSelector()}
 		txn, err := transaction.MakeApplicationNoOpTx(
 			App.Id,
 			append(args, []byte{byte(i)}),
 			nil, nil, nil, // foreign accounts, foreignApps, foreignAssets
 			sp,
-			App.TSS.Address,   // sender
+			feeRecipient,      // sender
 			nil,               // note
 			types.Digest{},    // group
 			[32]byte{},        // lease
@@ -321,9 +323,9 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 	return txns, nil
 }
 
-// SendWithdrawalToNetwork sends the withdrawal transactions to the network.
+// SendWithdrawalToNetworkWithTSS sends the withdrawal txns to the network signed by the TSS.
 // It returns the leaf index of the change note, the ID of the first group txn, and any error
-func SendWithdrawalToNetwork(txns []types.Transaction,
+func SendWithdrawalToNetworkWithTSS(txns []types.Transaction,
 ) (leafIndex uint64, txnId string, txnConfirmationError *TxnConfirmationError) {
 
 	algod := algodClient()

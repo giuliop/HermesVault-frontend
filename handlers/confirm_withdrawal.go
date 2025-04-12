@@ -102,7 +102,7 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	leafIndex, txnId, confirmationError = avm.SendWithdrawalToNetwork(txns)
+	leafIndex, txnId, confirmationError = avm.SendWithdrawalToNetworkWithTSS(txns)
 	if confirmationError != nil {
 		switch confirmationError.Type {
 		case avm.ErrRejected:

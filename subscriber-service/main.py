@@ -105,7 +105,7 @@ def handle_transaction(txn: sub.SubscribedTransaction, filter_name: str) -> None
         )
         withdrawal = Withdrawal(
             leaf_index=leaf_index,
-            address=accounts[1],
+            address=address,
             nullifier=nullifier,
             amount=amount,
             fee=fee,

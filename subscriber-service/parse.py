@@ -72,8 +72,8 @@ def withdraw_args(args: list[str], accounts: list[str]
                         - commitment
                         - nullifier
                         - merkle_root
-      - account    -> account receiving the fee
       - account    -> account receiving the withdrawal
+      - account    -> account receiving the fee
       - bool       -> no_change
     """
     # args[0] is the method selector
@@ -89,7 +89,7 @@ def withdraw_args(args: list[str], accounts: list[str]
     fee_bytes = get_Byte32(public_inputs, 2)
     fee = int.from_bytes(fee_bytes, byteorder="big")
 
-    withdrawal_account_arg = args[4]
+    withdrawal_account_arg = args[3]
     withdrawal_account_pos_bytes = base64.b64decode(withdrawal_account_arg)
     # we subtract 1 because the index is 1-based but the array is 0-based
     withdrawal_address_pos = int.from_bytes(withdrawal_account_pos_bytes, byteorder="big") - 1
