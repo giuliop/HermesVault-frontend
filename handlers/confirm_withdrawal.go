@@ -125,6 +125,13 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 					Please try again.`
 			http.Error(w, modalWithdrawalFailed(msg), http.StatusInternalServerError)
 			return
+		default:
+			log.Printf("Unknown error sending withdrawal transaction: %v",
+				confirmationError.Error())
+			msg := `Something went wrong. Your withdrawal was not processed.<br>
+					Please try again.`
+			http.Error(w, modalWithdrawalFailed(msg), http.StatusInternalServerError)
+			return
 		}
 	}
 
