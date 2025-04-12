@@ -30,7 +30,7 @@ Fill the `Amount` field with the amount you wish to withdraw, the `Address` fiel
 
 The address receiving the tokens is not paying any transaction fee, so it can be a new, zero-balance account.
 
-The deposit you are withdrawing from (identified by your secret note) will be reduced by the amount withdrawn and a protocol fee of 0.1% (with a minimum fee of 0.1 algo).
+The deposit you are withdrawing from (identified by your secret note) will be reduced by the amount withdrawn and a transaction fee of 0.0753 algo to the Algorand blockchain.
 What is left will be automatically inserted in the contract as a new deposit with a new secret note that will be shown to you in the next screen.
 
 As with deposits, before the withdrawal transaction takes place, you will be asked to save the new secret note and prove you did by pasting it back in the appropriate section.
