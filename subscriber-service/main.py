@@ -8,6 +8,7 @@ It saves eacn new deposit or change note to the txn_data.db sqlite database so t
 2) we can clean up unconfirmed_notes in the main frontend database in (the rare) case the
    frontend crashes before the note is confirmed
 """
+import argparse
 import json
 import logging
 import os
@@ -38,8 +39,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-APP_ID = None
-watermark = None
+APP_ID: int = None
+watermark: int = None
 
 def get_watermark() -> int:
     return watermark
@@ -49,7 +50,7 @@ def set_watermark(new_watermark: int) -> None:
     watermark = new_watermark
     db.set_watermark(new_watermark)
 
-def init():
+def init(watermark_catchup: int = 0) -> None:
     global APP_ID
     global watermark
 
@@ -59,10 +60,16 @@ def init():
         APP_CREATION_BLOCK = app["creationBlock"]
 
     db.initialize_db(DB_FILE)
-
     watermark = db.get_watermark()
-    if watermark < APP_CREATION_BLOCK:
-        set_watermark(APP_CREATION_BLOCK)
+
+    if watermark_catchup:
+        logger.warning(f"Fast catchup mode enabled.\n"
+                       f"Setting watermark to {watermark_catchup} from {watermark}.\n"
+                       f"All transactions in between are ignored.")
+        set_watermark(watermark_catchup)
+    else:
+        if watermark < APP_CREATION_BLOCK:
+            set_watermark(APP_CREATION_BLOCK)
 
 def handle_transaction(txn: sub.SubscribedTransaction, filter_name: str) -> None:
     """
@@ -107,7 +114,11 @@ def handle_transaction(txn: sub.SubscribedTransaction, filter_name: str) -> None
 
 
 def main():
-    init()
+    """
+    Run the subscriber service.
+    If --fastcatchup is set, it will immediately update the watermark to the current
+    blockchain block height and ignore all previous transactions, this is for testing ONLY.
+    """
 
     if ALGOD_DIR == "":
         algod_address, algod_token = config.devnet_algod_config()
@@ -118,6 +129,20 @@ def main():
         algod_address, algod_token = config.read_algod_config_from_dir(ALGOD_DIR)
 
     algod = algosdk.v2client.algod.AlgodClient(algod_token, algod_address)
+
+    parser = argparse.ArgumentParser(description="Example script with --fastcatchup option.")
+    parser.add_argument(
+        "--fastcatchup",
+        action="store_true",
+        help="Enable fast catch-up mode."
+    )
+    args = parser.parse_args()
+
+    if args.fastcatchup:
+        watermark_catchup = algod.status()["last-round"]
+        init(watermark_catchup)
+    else:
+        init()
 
     depositFilter = NamedTransactionFilter(
         name=parse.depositFilterName,
