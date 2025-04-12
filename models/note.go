@@ -60,6 +60,10 @@ func (n *Note) MaxWithdrawalAmount() Amount {
 	return NewAmount(n.Amount - fee)
 }
 
+func (n *Note) AmountAlgoString() string {
+	return MicroAlgosToAlgoString(n.Amount)
+}
+
 // generateDepositNote generates a new deposit note for the change amount after a withdrawal
 func GenerateChangeNote(withdrawalAmount Amount, fromNote *Note) (*Note, error) {
 	deduction := withdrawalAmount.Microalgos + CalculateWithdrawalFee(withdrawalAmount.Microalgos)

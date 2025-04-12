@@ -22,16 +22,31 @@
             </span>
             <span class="row">
                 <span class="bold">
-                    Protocol Fee
-                        <span class="has-info">
-                            <span class="tooltip">
-                                0.1% of withdrawal<br>(0.1 algo minimum fee)
-                            </span>
-                        </span>
-                </span>
-                <span>
-                    {{.Fee.Algostring}} algo
-                </span>
+                    Transaction fees
+										<span class="has-info">
+												<span class="tooltip">
+														To cover blockchain transaction costs,<br>
+														these are covered by the original deposit
+												</span>
+										</span>
+								</span>
+								<span>
+										{{.Fee.Algostring}} algo
+								</span>
+            </span>
+            <span class="row">
+                <span class="bold">
+                    Remaining balance
+										<span class="has-info">
+												<span class="tooltip">
+														You will be able to withdraw the remaining<br>
+														balance with this new secret note
+												</span>
+										</span>
+								</span>
+								<span>
+									  {{.ChangeNote.AmountAlgoString}} algo
+								</span>
             </span>
         </p>
         <p>
