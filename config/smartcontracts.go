@@ -6,13 +6,11 @@ import (
 
 // app constants
 const (
-	MerkleTreeLevels    = 24
+	MerkleTreeLevels    = 32
 	Curve               = ecc.BN254
 	RandomNonceByteSize = 31
 
-	DepositMinimumAmount = 1e6  // 1 algo
-	WithDrawalFeeDivisor = 1000 // 0.1% (we divide by this to get the fee)
-	WithdrawalMinimumFee = 1e5  // 0.1 algo
+	DepositMinimumAmount = 1_000_000 // microalgo, or 1 algo
 
 	DepositMethodName    = "deposit"
 	WithDrawalMethodName = "withdraw"
@@ -27,10 +25,10 @@ const (
 	VerifierTopLevelTxnNeeded = 8
 
 	// fees needed for a deposit transaction group
-	DepositMinFeeMultiplier = 42
+	DepositMinFeeMultiplier = 56
 
 	// fees needed for a withdrawal transaction group
-	WithdrawalMinFeeMultiplier = 47
+	WithdrawalMinFeeMultiplier = 60
 )
 
 var Hash = NewMimcF(Curve)
