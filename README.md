@@ -39,12 +39,9 @@ Click `Confirm` and if all goes well, you will get a success confirmation messag
 ### Fees
 The frontend does not charge any fees.
 
-The protocol does not charge any fee for deposits but the transaction fee needed by the network to process it is 0.042 algo which you will pay.
-
-The protocol charges a 0.1% fee on withdrawals (with a minimum fee of 0.1 algo).
-Of that fee, ~0.1 algo are needed to cover transaction and storage fees, while the rest accrues to the protocol treasury.
-100% of the protocol treasury will be targeted back to the protocol users, details will be published before MainNet.
-
+The only fees to be covered are the algorand blockchain fees, in particular:
+* For deposit, 0.056 algo will be paid in transaction fees by the signer
+* For withdrawals, 0.0753 algo will be paid in trasaction fees by the application and taken from the original deposit, allowing a zero balance account to withdraw
 
 ### Privacy and security
 
