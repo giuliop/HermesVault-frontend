@@ -34,9 +34,9 @@ func (a *Amount) Round() *Amount {
 // CalculateWithdrawalFee calculates the withdrawal fee for a given amount
 func CalculateWithdrawalFee(amount uint64) uint64 {
 	if config.FrontendWithDrawalFeeDivisor == 0 {
-		return config.WithdrawalMinimumFee
+		return config.WithdrawalMinFee
 	}
-	return max(amount/config.FrontendWithDrawalFeeDivisor, config.WithdrawalMinimumFee)
+	return max(amount/config.FrontendWithDrawalFeeDivisor, config.WithdrawalMinFee)
 }
 
 // MicroAlgosToAlgoString converts microalgos (uint64) to a string representing algos.

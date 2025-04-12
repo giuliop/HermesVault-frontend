@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/algorand/go-algorand-sdk/v2/transaction"
 	"github.com/consensys/gnark-crypto/ecc"
 )
 
@@ -11,7 +12,6 @@ const (
 	RandomNonceByteSize = 31
 
 	DepositMinimumAmount = 1_000_000 // microalgo, or 1 algo
-	WithdrawalMinimumFee = 15_300    // microalgo, or 0.0153 algo
 
 	DepositMethodName    = "deposit"
 	WithDrawalMethodName = "withdraw"
@@ -30,6 +30,10 @@ const (
 
 	// fees needed for a withdrawal transaction group
 	WithdrawalMinFeeMultiplier = 60
+	// fees withhold by the smart contract
+	NullifierMbr = 15_300 // microalgo, or 0.0153 algo
+	// min fees for withdrawal to be taken from the deposit note
+	WithdrawalMinFee = NullifierMbr + WithdrawalMinFeeMultiplier*transaction.MinTxnFee
 )
 
 var Hash = NewMimcF(Curve)
