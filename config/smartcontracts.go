@@ -11,6 +11,7 @@ const (
 	RandomNonceByteSize = 31
 
 	DepositMinimumAmount = 1_000_000 // microalgo, or 1 algo
+	WithdrawalMinimumFee = 15_300    // microalgo, or 0.0153 algo
 
 	DepositMethodName    = "deposit"
 	WithDrawalMethodName = "withdraw"

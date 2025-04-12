@@ -27,6 +27,13 @@ const (
 	CleanupInterval = 10 * time.Minute // 10 minutes
 )
 
+// Frontend fees
+var (
+	// The frontend withdrawal fee is determined by dividing the withdrawal amount
+	// by this divisor. If zero, there is no frontend fee
+	FrontendWithDrawalFeeDivisor = uint64(0)
+)
+
 // file paths
 var (
 	AppSetupDirPath string

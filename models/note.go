@@ -53,22 +53,16 @@ func (n *Note) LeafValue() []byte {
 }
 
 func (n *Note) MaxWithdrawalAmount() Amount {
-	if n.Amount <= config.WithdrawalMinimumFee {
+	fee := CalculateWithdrawalFee(n.Amount)
+	if n.Amount <= fee {
 		return NewAmount(0)
 	}
-	D := uint64(config.WithDrawalFeeDivisor)
-	// Compute maxWithdrawal avoiding overflow:
-	maxWithdrawal := n.Amount - ((n.Amount + D) / (D + 1))
-	// Check if the fee meets the minimum fee requirement
-	if n.Amount-maxWithdrawal < config.WithdrawalMinimumFee {
-		maxWithdrawal = n.Amount - config.WithdrawalMinimumFee
-	}
-	return NewAmount(maxWithdrawal)
+	return NewAmount(n.Amount - fee)
 }
 
 // generateDepositNote generates a new deposit note for the change amount after a withdrawal
 func GenerateChangeNote(withdrawalAmount Amount, fromNote *Note) (*Note, error) {
-	deduction := withdrawalAmount.Microalgos + CalculateFee(withdrawalAmount.Microalgos)
+	deduction := withdrawalAmount.Microalgos + CalculateWithdrawalFee(withdrawalAmount.Microalgos)
 	if deduction < withdrawalAmount.Microalgos {
 		return nil, fmt.Errorf("overflow in deduction")
 	}

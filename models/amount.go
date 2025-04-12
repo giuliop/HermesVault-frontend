@@ -15,7 +15,7 @@ type Amount struct {
 
 // Fee calculates the fee for a withdrawal amount
 func (withdrawalAmount *Amount) Fee() Amount {
-	fee := CalculateFee(withdrawalAmount.Microalgos)
+	fee := CalculateWithdrawalFee(withdrawalAmount.Microalgos)
 	return NewAmount(fee)
 }
 
@@ -31,10 +31,12 @@ func (a *Amount) Round() *Amount {
 	return a
 }
 
-// CalculateFee calculates the fee for a given amount based on config parameters;
-// e.g., the fee is 0.1% of the amount with a minimum of 1000 microalgos
-func CalculateFee(amount uint64) uint64 {
-	return max(amount/config.WithDrawalFeeDivisor, config.WithdrawalMinimumFee)
+// CalculateWithdrawalFee calculates the withdrawal fee for a given amount
+func CalculateWithdrawalFee(amount uint64) uint64 {
+	if config.FrontendWithDrawalFeeDivisor == 0 {
+		return config.WithdrawalMinimumFee
+	}
+	return max(amount/config.FrontendWithDrawalFeeDivisor, config.WithdrawalMinimumFee)
 }
 
 // MicroAlgosToAlgoString converts microalgos (uint64) to a string representing algos.
