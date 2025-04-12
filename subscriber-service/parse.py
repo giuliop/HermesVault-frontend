@@ -4,7 +4,7 @@ from typing import Tuple
 from algosdk import abi
 
 DEPOSIT_SIGNATURE = "deposit(byte[32][],byte[32][],address)(uint64,byte[32])"
-WITHDRAW_SIGNATURE = ("withdraw(byte[32][],byte[32][],account,bool,uint64)(uint64,byte[32])")
+WITHDRAW_SIGNATURE = ("withdraw(byte[32][],byte[32][],account,account,bool)(uint64,byte[32])")
 
 depositFilterName = "deposit"
 withdrawFilterName = "withdraw"
@@ -61,9 +61,9 @@ def deposit_args(args: list[str]) -> Tuple[bytes, str, int]:
 def withdraw_args(args: list[str], accounts: list[str]
                   ) -> Tuple[bytes, bytes, bytes, int, int]:
     """
-    Return (commitment, address, nullifier, amount, fee) from the arguments and accounts of a
+    Return (commitment, withdrawal_address, nullifier, amount) from the arguments and accounts of a
     withdraw transaction.
-    The arc4 arg signature is (byte[32][],byte[32][],account,bool,uint64), where the args are:
+    The arc4 arg signature is (byte[32][],byte[32][],account,account, bool), where the args are:
       - byte[32][] -> zk proof
       - byte[32][] -> zk public inputs:
                         - recipient_mod
@@ -72,9 +72,9 @@ def withdraw_args(args: list[str], accounts: list[str]
                         - commitment
                         - nullifier
                         - merkle_root
+      - account    -> account receiving the fee
       - account    -> account receiving the withdrawal
       - bool       -> no_change
-      - uint64     -> extra_txn_fee
     """
     # args[0] is the method selector
     public_inputs_arg = args[2]
@@ -89,14 +89,13 @@ def withdraw_args(args: list[str], accounts: list[str]
     fee_bytes = get_Byte32(public_inputs, 2)
     fee = int.from_bytes(fee_bytes, byteorder="big")
 
-    account_arg = args[3]
-    accounts = base64.b64decode(account_arg)
-    # we subtract 1 because we get back the account array without the sender account as first
-    # and subtract 1 more because the index is 1-based but the array is 0-based
-    address_pos_in_accounts = int.from_bytes(accounts, byteorder="big") - 2
-    address = accounts[address_pos_in_accounts]
+    withdrawal_account_arg = args[4]
+    withdrawal_account_pos_bytes = base64.b64decode(withdrawal_account_arg)
+    # we subtract 1 because the index is 1-based but the array is 0-based
+    withdrawal_address_pos = int.from_bytes(withdrawal_account_pos_bytes, byteorder="big") - 1
+    withdrawal_address = accounts[withdrawal_address_pos]
 
-    return (commitment, address, nullifier, amount, fee)
+    return commitment, withdrawal_address, nullifier, amount, fee
 
 def get_Byte32(array: bytes, pos: int) -> bytes:
     """
