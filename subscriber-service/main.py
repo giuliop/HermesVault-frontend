@@ -29,8 +29,6 @@ ALGOD_DIR = env["AlgodPath"]
 APP_FILE = os.path.join(env["AppSetupDirPath"], "App.json")
 DB_FILE = env["TxnsDbPath"]
 
-# TODO: review logging
-# logging.basicConfig(level=logging.INFO)
 logging.basicConfig(
     level=logging.WARNING,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
