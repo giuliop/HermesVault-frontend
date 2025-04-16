@@ -1,19 +1,19 @@
-This project is a webapp that acts as frontend to an Algorand blockchain application offering private algo transfers, similar to Tornado Cash.
+This project is a webapp that acts as frontend to an Algorand blockchain application offering private algo transfers.
 
 There are three processes running:
-* an algod node connected to the Algorand blockchain to broadcast transactions. The project
-  uses the official go-algorand implementation to run the node
+* an algod node connected to the Algorand blockchain to broadcast transactions.
 * a golang web server written with the net/http package without third party frameworks that
-  served the frontend and manages the backend, that is creating zk-proofs and blockchain
+  serves the frontend and manages the backend, that is creating zk-proofs and blockchain
   transaction
-* a python process that monitors the blockchain and saves relevant transaction data
+* a python process that monitors the blockchain through the algod node and saves relevant transaction data
 
 In production we run on a linode cloud server with apache2 as reverse proxy and certbot for ssl certificates.
 We use systemd to manage the algod node, the go webserver, and the python process.
-We use redeploy.sh to redeploy the webserver.
+We use the script redeploy.sh to redeploy the webserver.
 
-In development we use air to launch the go web server and the js bundling with the command `air` from the project root and
-we use pipenv to launch the python process with the command `pipenv run python main.py` from the subscriber-service directory
+In development we use air to launch the go web server  with the command `air` from the project root and
+we use pipenv to launch the python process with the command `pipenv run python main.py`
+from the subscriber-service directory
 
 The project structure is the following (ignoring usual system files):
 
@@ -82,13 +82,13 @@ internal.db has the following table:
 * notes (
     leaf_index INTEGER PRIMARY KEY,			-- note index in onchain merkle tree
 	commitment BLOB NOT NULL,          		-- note value in onchain merkle tree
-	nullifier BLOB                          -- note nullifier
+	nullifier BLOB                          -- note nullifier (encrypted)
 	txn_id TEXT UNIQUE NOT NULL,	        -- id of first group txn that inserted the note
 )
 * unconfirmed_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     commitment BLOB NOT NULL,          		-- note Value in onchain merkle tree
-    nullifier BLOB,                         -- note nullifier
+    nullifier BLOB,                         -- note nullifier (encrypted)
     txn_id TEXT UNIQUE NOT NULL 			-- id of first group txn that will insert note
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )
@@ -98,6 +98,8 @@ commitments so that the webserver can create merlke proof for withdrawals.
 This database will be written by the python process, while the go webserver will only read it.
 
 The key purpose of internal.db is to store nullifiers for compliance. This database will only
-be accessed by the go webserver.
+be accessed by the go webserver. It stores nullifiers encrypted with a public key on file.
+The private key is not stored on the server so even if the server is compromised the information
+cannot be decrypted.
 
 ----------------------------------------------------------------------------------------------
