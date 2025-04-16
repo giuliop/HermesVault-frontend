@@ -60,9 +60,6 @@ func initializeInternalDB() error {
 	// The unconfirmed_notes table stores notes that the frontend has not received confirmation
 	// for yet form the blockchain. Once the txn inserting the note is confirmed, it is
 	// removed from this table and added to the notes table.
-	// The debug_notes table is used to store notes for debugging purposes and will be removed
-	// before MainNet launch.
-	// TODO: unconfimed_notes cleanup and debug_notes removal
 	createTables := `
 	CREATE TABLE IF NOT EXISTS notes (
 		leaf_index INTEGER PRIMARY KEY,			-- note ndex in onchain merkle tree
@@ -78,13 +75,14 @@ func initializeInternalDB() error {
 		txn_id TEXT UNIQUE NOT NULL, 			-- id of first group txn that will insert note
 		created_at TEXT DEFAULT CURRENT_TIMESTAMP
 	) STRICT;
-
-	CREATE TABLE IF NOT EXISTS debug_notes (
-		leaf_index INTEGER PRIMARY KEY,
-		text TEXT NOT NULL,
-		FOREIGN KEY(leaf_index) REFERENCES notes(leaf_index) ON DELETE CASCADE
-	) STRICT;
 	`
+	// Only for use in TestNet
+	// CREATE TABLE IF NOT EXISTS debug_notes (
+	// 	leaf_index INTEGER PRIMARY KEY,
+	// 	text TEXT NOT NULL,
+	// 	FOREIGN KEY(leaf_index) REFERENCES notes(leaf_index) ON DELETE CASCADE
+	// ) STRICT;
+
 	// Enable WAL
 	_, err = internalDb.Exec("PRAGMA journal_mode = WAL")
 	if err != nil {

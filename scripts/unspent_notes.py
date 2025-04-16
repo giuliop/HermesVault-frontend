@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+This script queries unspent deposits and unspent change deposits for a given Algorand address.
+It only works if the debug_notes table is present in the internal.db database.
+It requires to know the private key to decrypt the nullifiers.
+"""
 import argparse
 import binascii
 import getpass

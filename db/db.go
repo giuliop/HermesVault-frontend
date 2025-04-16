@@ -57,12 +57,12 @@ func SaveNote(n *models.Note) error {
 		return fmt.Errorf("failed to insert note: %w", err)
 	}
 
-	// TODO: remove after removel of debug_notes table before MainNet
-	debugSql := `INSERT INTO debug_notes (leaf_index, text) VALUES (?, ?)`
-	_, err = internalDb.Exec(debugSql, n.LeafIndex, n.Text())
-	if err != nil {
-		return fmt.Errorf("failed to insert debug note: %w", err)
-	}
+	// Only for use in TestNet
+	// debugSql := `INSERT INTO debug_notes (leaf_index, text) VALUES (?, ?)`
+	// _, err = internalDb.Exec(debugSql, n.LeafIndex, n.Text())
+	// if err != nil {
+	// 	return fmt.Errorf("failed to insert debug note: %w", err)
+	// }
 
 	return nil
 }
