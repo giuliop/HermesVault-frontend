@@ -1,12 +1,12 @@
 import algosdk from "algosdk";
 import { PeraWalletConnect }  from "@perawallet/connect";
 
-// const mainnetId = 416001;
-const testnetId = 416002;
+// const testnetId = 416002;
+const mainnetId = 416001;
 
-// TODO: replace with mainnetId for mainnet
 const peraWallet = new PeraWalletConnect({
-    chainId: testnetId
+    // chainId: testnetId
+    chainId: mainnetId
 });
 
 let accountAddress = "";
