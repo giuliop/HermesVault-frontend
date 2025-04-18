@@ -81,8 +81,9 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 	if amount.Microalgos != depositData.Amount.Microalgos || address != depositData.Address ||
 		note.Text() != depositData.Note.Text() {
 		log.Printf("deposit data does not match. Form submitted:\nAmount: %v\nAddress: "+
-			"%v\nNote: %v\n, while memory store had Amount: %v\nAddress: %v\nNote: %v\n",
-			amount, address, note, depositData.Amount, depositData.Address, depositData.Note)
+			"%v\nNote: <redacted>\n, while memory store had Amount: %v\nAddress: %v\n"+
+			"Note: <redacted>\n",
+			amount, address, depositData.Amount, depositData.Address)
 		http.Error(w, modalDepositFailed("Bad Request"), http.StatusBadRequest)
 		return
 	}
