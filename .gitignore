@@ -19,3 +19,4 @@ frontend/static/*.bundle.*
 # env
 *.env
 .env.*
+!config/.env.example    # don't ignore example env
