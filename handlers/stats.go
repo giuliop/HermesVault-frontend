@@ -10,9 +10,9 @@ import (
 
 // Stats represents the statistics data to be displayed on the stats page
 type Stats struct {
-	DepositCount    int
-	NoteCount       int
-	SpentNoteCount  int
+	DepositCount    uint64
+	NoteCount       uint64
+	SpentNoteCount  uint64
 	DepositTotal    string
 	WithdrawalTotal string
 	TVL             string

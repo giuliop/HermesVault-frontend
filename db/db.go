@@ -69,9 +69,9 @@ func SaveNote(n *models.Note) error {
 
 // GetLeafIndexByCommitment returns the leaf index of a note given its commitment
 // error will be sql.ErrNoRows if no rows are returned
-func GetLeafIndexByCommitment(commitment []byte) (int, error) {
+func GetLeafIndexByCommitment(commitment []byte) (uint64, error) {
 	query := `SELECT leaf_index FROM txns WHERE commitment = ?`
-	var index int
+	var index uint64
 	err := txnsDb.QueryRow(query, commitment).Scan(&index)
 	return index, err
 }
@@ -102,10 +102,10 @@ func GetAllLeavesCommitments() ([][]byte, error) {
 }
 
 // GetRoot returns the Merkle root and the number of leaves in the tree
-func GetRoot() (root []byte, leafCount int, err error) {
+func GetRoot() (root []byte, leafCount uint64, err error) {
 	query := `SELECT value, leaf_count FROM roots`
 	err = txnsDb.QueryRow(query).Scan(&root, &leafCount)
-	return
+	return root, leafCount, err
 }
 
 // DeleteUnconfirmedNote deletes an unconfirmed note from the database.
@@ -141,7 +141,7 @@ func GetStats() (*models.StatData, error) {
 		return nil, fmt.Errorf("failed to get stats: %w", err)
 	}
 
-	var noteCount int
+	var noteCount uint64
 	notesSql := `SELECT COUNT(*) FROM txns`
 	err = txnsDb.QueryRow(notesSql).Scan(&noteCount)
 	if err != nil {
@@ -152,7 +152,7 @@ func GetStats() (*models.StatData, error) {
 		DepositTotal:    models.NewAmount(depositTotal),
 		WithdrawalTotal: models.NewAmount(withdrawalTotal),
 		FeeTotal:        models.NewAmount(feeTotal),
-		DepositCount:    int(depositCount),
+		DepositCount:    depositCount,
 		NoteCount:       noteCount,
 	}, nil
 }

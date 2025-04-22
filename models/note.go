@@ -12,7 +12,7 @@ type Note struct {
 	Amount    uint64
 	K         [config.RandomNonceByteSize]byte
 	R         [config.RandomNonceByteSize]byte
-	LeafIndex int
+	LeafIndex uint64
 	TxnID     string
 }
 
@@ -24,11 +24,16 @@ func GenerateNote(amount uint64) (*Note, error) {
 		return nil, fmt.Errorf("error generating random bytes for k / r: %v / %v",
 			errK, errR)
 	}
+	return NewNote(amount, k, r), nil
+}
+
+func NewNote(amount uint64, k, r [config.RandomNonceByteSize]byte) *Note {
 	return &Note{
-		Amount: amount,
-		K:      k,
-		R:      r,
-	}, nil
+		Amount:    amount,
+		K:         k,
+		R:         r,
+		LeafIndex: EmptyLeafIndex,
+	}
 }
 
 func (n *Note) Text() string {

@@ -9,7 +9,7 @@ import (
 )
 
 // getRoot returns the Merkle root from the database
-func getRoot(leafIndex int) ([]byte, error) {
+func getRoot(leafIndex uint64) ([]byte, error) {
 	root, leaf_count, err := db.GetRoot()
 	if err != nil {
 		return nil, fmt.Errorf("error getting root: %v", err)
@@ -24,7 +24,7 @@ func getRoot(leafIndex int) ([]byte, error) {
 // The proof is a path that starts with the leaf value (not hashed)
 // and includes the sibling hashes up to but excluding the root.
 // It checks the validity of the proof against the provided root
-func createMerkleProof(leafValue []byte, leafIndex int, root []byte) ([][]byte, error) {
+func createMerkleProof(leafValue []byte, leafIndex uint64, root []byte) ([][]byte, error) {
 	depth := config.MerkleTreeLevels
 	proof := make([][]byte, 1, depth+1)
 	proof[0] = leafValue

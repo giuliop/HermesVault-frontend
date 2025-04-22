@@ -69,9 +69,6 @@ func (input Input) ToNote() (*Note, error) {
 	var k, r [config.RandomNonceByteSize]byte
 	copy(k[:], decoded[amountByteSize:amountAndNonceSize])
 	copy(r[:], decoded[amountAndNonceSize:])
-	return &Note{
-		Amount: binary.BigEndian.Uint64(amount),
-		K:      k,
-		R:      r,
-	}, nil
+	note := NewNote(binary.BigEndian.Uint64(amount), k, r)
+	return note, nil
 }

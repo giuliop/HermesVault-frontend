@@ -135,7 +135,7 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	withdrawData.ChangeNote.LeafIndex = int(leafIndex)
+	withdrawData.ChangeNote.LeafIndex = leafIndex
 	if txnId != withdrawData.ChangeNote.TxnID {
 		log.Printf("Withdrawal txnId mismatch: %v != %v", txnId, withdrawData.ChangeNote.TxnID)
 	}

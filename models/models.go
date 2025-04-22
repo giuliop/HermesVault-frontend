@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
+	"math"
 
 	"github.com/algorand/go-algorand-sdk/v2/encoding/msgpack"
 	"github.com/algorand/go-algorand-sdk/v2/types"
@@ -12,7 +13,7 @@ import (
 
 const (
 	EmptyTxnId     = ""
-	EmptyLeafIndex = -1
+	EmptyLeafIndex = math.MaxUint64
 )
 
 type WithdrawalData struct {
@@ -56,8 +57,8 @@ type StatData struct {
 	DepositTotal    Amount
 	WithdrawalTotal Amount
 	FeeTotal        Amount
-	DepositCount    int
-	NoteCount       int
+	DepositCount    uint64
+	NoteCount       uint64
 }
 
 func (s *StatData) TVL() *Amount {

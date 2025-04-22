@@ -160,7 +160,7 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	depositData.Note.LeafIndex = int(leafIndex)
+	depositData.Note.LeafIndex = leafIndex
 	if txnId != depositData.Note.TxnID {
 		log.Printf("Deposit txnId mismatch. %v != %v", txnId, depositData.Note.TxnID)
 	}
