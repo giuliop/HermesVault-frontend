@@ -65,6 +65,9 @@ func main() {
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 			},
+			ReadHeaderTimeout: 60 * time.Second,
+			WriteTimeout:      120 * time.Second,
+			IdleTimeout:       300 * time.Second,
 		}
 
 		log.Printf("Server running in development mode on port %s\n",
@@ -78,7 +81,10 @@ func main() {
 	} else {
 		// Production mode, we serve HTTP to a reverse proxy
 		server = &http.Server{
-			Addr: ":" + config.ProductionPort,
+			Addr:              ":" + config.ProductionPort,
+			ReadHeaderTimeout: 60 * time.Second,
+			WriteTimeout:      120 * time.Second,
+			IdleTimeout:       300 * time.Second,
 		}
 
 		log.Printf("Server running in production mode on port %s\n",
