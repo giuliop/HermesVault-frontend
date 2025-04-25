@@ -165,8 +165,6 @@ def main():
         indexer = None
         sync_behaviour = "sync-oldest"
 
-    print(f"Using sync behaviour: {sync_behaviour}")
-
     subscriber = AlgorandSubscriber(
         config={
             "filters": [depositFilter, withdrawFilter],

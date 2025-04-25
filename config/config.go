@@ -10,9 +10,8 @@ import (
 
 // webserver constants
 const (
-	CacheControl    = "public, max-age=600" // 600 sec = 10 min
-	ProductionPort  = "5555"
-	DevelopmentPort = "3000"
+	CacheControl = "public, max-age=600" // 600 sec = 10 min
+	Port         = "5555"
 )
 
 // other constants

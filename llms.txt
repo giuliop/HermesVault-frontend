@@ -1,22 +1,19 @@
 This project is a webapp that acts as frontend to an Algorand blockchain application offering private algo transfers.
 
-There are three processes running:
-* an algod node connected to the Algorand blockchain to broadcast transactions.
+There are two processes running:
 * a golang web server written with the net/http package without third party frameworks that
-  serves the frontend and manages the backend, that is creating zk-proofs and blockchain
-  transaction
-* a python process that monitors the blockchain through the algod node and saves relevant transaction data
+  serves the frontend and manages the backend, that is creating zk-proofs and sending blockchain transaction
+* a python process that monitors the blockchain through an algod node and saves relevant transaction data
 
 In production we run on a linode cloud server with apache2 as reverse proxy and certbot for ssl certificates.
-We use systemd to manage the algod node, the go webserver, and the python process.
-We use the script redeploy.sh to redeploy the webserver.
+We use systemd to manage the go webserver, and the python process
+We use nodely.io to connect to an algod node
+We use the script redeploy.sh to redeploy the webserver
 
-In development we use air to launch the go web server  with the command `air` from the project root and
-we use pipenv to launch the python process with the command `pipenv run python main.py`
-from the subscriber-service directory
+In development we use air to launch the go web server with the command `air` from the project root and we use pipenv
+to launch the python process with the command `pipenv run python main.py` from the subscriber-service directory
 
 The project structure is the following (ignoring usual system files):
-
 ./
 ├── .air.toml               // air configuration file to run the webserver in development
 ├── .tmp/
@@ -26,7 +23,6 @@ The project structure is the following (ignoring usual system files):
 │   ├── internal/           // internal database files
 │   ├── txns/               // txns database files
 ├── db/                     // go package to manage database
-├── dev-ssl-certificates    // contains ssl certificates for development web server
 ├── frontend/
 │   ├── js                  // js source files
 │   ├── node_modules

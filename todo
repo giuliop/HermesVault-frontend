@@ -3,10 +3,9 @@ Backend
 
 Subscriber service
 * Review logging and error handling
-* Use an archival node as backup if watermark behind algod
 
 UI
 * Review error messages to user
 
 Testing
-* Add tests
+* Add more tests

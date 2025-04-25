@@ -1,8 +1,9 @@
 avm/devnet
-dev-ssl-certificates/
 node_modules/
+
 .tmp/
 .vscode/
+
 *.log
 *.err
 *.zip
@@ -16,7 +17,8 @@ node_modules/
 # bundle files in frontend/static
 frontend/static/*.bundle.*
 
-# env
+# env files
 *.env
 .env.*
-!config/.env.example    # don't ignore example env
+# but don't ignore example env file
+!config/.env.example

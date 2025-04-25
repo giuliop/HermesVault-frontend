@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -18,9 +16,6 @@ import (
 )
 
 func main() {
-	// Parse the -dev flag
-	dev := flag.Bool("dev", false, "run in development mode")
-	flag.Parse()
 
 	defer db.Close()
 
@@ -48,54 +43,20 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("./frontend/static/"))))
 
-	var server *http.Server
-
-	// Determine the mode and configure the server accordingly
-	if *dev {
-		// Development mode, we use a self-signed certificate to serve HTTPS
-		cert, err := tls.LoadX509KeyPair("dev-ssl-certificates/localhost+4.pem",
-			"dev-ssl-certificates/localhost+4-key.pem")
-		if err != nil {
-			log.Fatalf("Error loading certificates: %v", err)
-		}
-
-		// Create a custom HTTPS server
-		server = &http.Server{
-			Addr: ":" + config.DevelopmentPort,
-			TLSConfig: &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			},
-			ReadHeaderTimeout: 60 * time.Second,
-			WriteTimeout:      120 * time.Second,
-			IdleTimeout:       300 * time.Second,
-		}
-
-		log.Printf("Server running in development mode on port %s\n",
-			config.DevelopmentPort)
-		go func() {
-			err = server.ListenAndServeTLS("", "")
-			if err != nil && err != http.ErrServerClosed {
-				log.Fatalf("Error starting HTTPS server: %v", err)
-			}
-		}()
-	} else {
-		// Production mode, we serve HTTP to a reverse proxy
-		server = &http.Server{
-			Addr:              ":" + config.ProductionPort,
-			ReadHeaderTimeout: 60 * time.Second,
-			WriteTimeout:      120 * time.Second,
-			IdleTimeout:       300 * time.Second,
-		}
-
-		log.Printf("Server running in production mode on port %s\n",
-			config.ProductionPort)
-		go func() {
-			err := server.ListenAndServe()
-			if err != nil && err != http.ErrServerClosed {
-				log.Fatalf("Error starting HTTP server: %v", err)
-			}
-		}()
+	server := &http.Server{
+		Addr:              ":" + config.Port,
+		ReadHeaderTimeout: 60 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       300 * time.Second,
 	}
+
+	log.Printf("Server running on port %s\n", config.Port)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error starting HTTP server: %v", err)
+		}
+	}()
 
 	// Handle graceful shutdown
 	quit := make(chan os.Signal, 1)
