@@ -25,10 +25,17 @@ from models import Deposit, Note, Withdrawal
 
 # read configuration
 env = config.load_env("../config/.env")
-ALGOD_DIR = env["AlgodPath"]
 APP_FILE = os.path.join(env["AppSetupDirPath"], "App.json")
 DB_FILE = env["TxnsDbPath"]
+ALGOD_PATH = env["AlgodPath"]
+try:
+    INDEXER_URL = env["IndexerUrl"]
+    INDEXER_TOKEN = env["IndexerToken"]
+except KeyError:
+    INDEXER_URL = ""
+    INDEXER_TOKEN = ""
 
+# Set up logging
 logging.basicConfig(
     level=logging.WARNING,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -118,13 +125,13 @@ def main():
     blockchain block height and ignore all previous transactions, this is for testing ONLY.
     """
 
-    if ALGOD_DIR == "":
+    if ALGOD_PATH == "":
         algod_address, algod_token = config.devnet_algod_config()
-    elif ALGOD_DIR.startswith("http"):
-        algod_address = ALGOD_DIR
+    elif ALGOD_PATH.startswith("http"):
+        algod_address = ALGOD_PATH
         algod_token = env["AlgodToken"]
     else:
-        algod_address, algod_token = config.read_algod_config_from_dir(ALGOD_DIR)
+        algod_address, algod_token = config.read_algod_config_from_dir(ALGOD_PATH)
 
     algod = algosdk.v2client.algod.AlgodClient(algod_token, algod_address)
 
@@ -150,14 +157,25 @@ def main():
         name=parse.withdrawFilterName,
         filter=TransactionFilter(app_id=APP_ID, method_signature=parse.WITHDRAW_SIGNATURE),
     )
+
+    if INDEXER_URL:
+        indexer = algosdk.v2client.indexer.IndexerClient(INDEXER_TOKEN, INDEXER_URL)
+        sync_behaviour = "catchup-with-indexer"
+    else:
+        indexer = None
+        sync_behaviour = "sync-oldest"
+
+    print(f"Using sync behaviour: {sync_behaviour}")
+
     subscriber = AlgorandSubscriber(
         config={
             "filters": [depositFilter, withdrawFilter],
-            "sync_behaviour": "sync-oldest",
+            "sync_behaviour": sync_behaviour,
             "watermark_persistence": {"get": get_watermark, "set": set_watermark},
             "frequency_in_seconds": 5,
         },
         algod_client=algod,
+        indexer_client=indexer,
     )
 
     logger.info("Starting subscriber for app_id %d...", APP_ID)
