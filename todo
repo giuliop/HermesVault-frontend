@@ -1,11 +1,11 @@
-Backend
-* Review logging and error handling
+Periodically do:
+      - Security audits:
+            `npm audit --audit-level=moderate`  for npm packages
+            `pip-audit`                         for python code
+            `gosec ./...`                       for go code
+      - Upgrade outdated deps (e.g. Esbuild, htmx, algosdk) on a regular cadence.
 
-Subscriber service
-* Review logging and error handling
-
-UI
-* Review error messages to user
-
-Testing
-* Add more tests
+Application Hardening
+      - Enable rate limiting (e.g. per-IP request cap) on deposit/withdraw endpoints
+      - Enforce maximum lengths on form inputs at both client and server
+      - Track and alert on repeated “Invalid note” or “SQL errors”—could indicate probing
