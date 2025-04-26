@@ -170,13 +170,14 @@ def main():
             "filters": [depositFilter, withdrawFilter],
             "sync_behaviour": sync_behaviour,
             "watermark_persistence": {"get": get_watermark, "set": set_watermark},
+            "wait_for_block_when_at_tip": True,
             "frequency_in_seconds": 5,
         },
         algod_client=algod,
         indexer_client=indexer,
     )
 
-    logger.info("Starting subscriber for app_id %d...", APP_ID)
+    logger.warning("Starting subscriber for app_id %d with sync_behavior %s", APP_ID, sync_behaviour)
 
     subscriber.on(depositFilter['name'], handle_transaction)
     subscriber.on(withdrawFilter['name'], handle_transaction)

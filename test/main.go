@@ -47,8 +47,8 @@ func main() {
 		log.Fatalf("Error saving deposit note to file: %s", err)
 	}
 
-	// wait 5 seconds to let the txns database update
-	time.Sleep(5 * time.Second)
+	// wait 10 seconds to let the txns database update
+	time.Sleep(10 * time.Second)
 
 	accounts := make([]crypto.Account, 0, txnsCountToTest)
 	note := depositNote
