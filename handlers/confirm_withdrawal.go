@@ -90,11 +90,9 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 	var saveNoteToDbError error
 
 	// We can delete the unconfirmed note if one of these is true:
-	// * txn confirmed by the blockchain and the note saved to the database,
-	// * txn rejected by the blockchain
-	// * internal error sending the txn
-	// If we timeout waiting for confirmation or get confirmation but fail to save to the db,
-	// we keep the unconfirmed note, the cleanup process will eventually handle it
+	// * txn confirmed by the blockchain and note saved to the database
+	// * error sending the txn other that timeout waiting for confirmation
+	// Otherwise we keep the unconfirmed note, the cleanup process will eventually handle it
 	defer func() {
 		if (confirmationError == nil && saveNoteToDbError == nil) ||
 			confirmationError.Type != avm.ErrWaitTimeout {

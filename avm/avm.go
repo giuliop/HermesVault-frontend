@@ -51,12 +51,12 @@ func init() {
 	}
 }
 
-func algodClient() *algod.Client {
+func AlgodClient() *algod.Client {
 	return client
 }
 
 func CompileTealFromFile(tealPath string) ([]byte, error) {
-	algodClient := algodClient()
+	algodClient := AlgodClient()
 
 	teal, err := os.ReadFile(tealPath)
 	if err != nil {

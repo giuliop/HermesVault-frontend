@@ -19,9 +19,10 @@ import (
 )
 
 // CreateDepositTxns create the txn group to make a deposit on chain:
-// 1. the app call signed by the deposit verifier with the zk proof
-// 2. the deposit transaction to the contract address signed by the user
-// 3. the additional app call transactions needed to meet the opcode budget
+//  1. the app call to be signed by the deposit verifier with the zk proof
+//  2. the deposit transaction to the contract address to be signed by the user
+//  3. the additional app call transactions needed to meet the opcode budget to be signed
+//     by the TSS account
 func CreateDepositTxns(amount models.Amount, address models.Address, note *models.Note,
 ) ([]types.Transaction, error) {
 
@@ -49,7 +50,7 @@ func CreateDepositTxns(amount models.Amount, address models.Address, note *model
 	}
 	appArgs = append(appArgs, addressBytes[:])
 
-	algod := algodClient()
+	algod := AlgodClient()
 	sp, err := algod.SuggestedParams().Do(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get suggested params: %v", err)
@@ -104,7 +105,7 @@ func CreateDepositTxns(amount models.Amount, address models.Address, note *model
 	args := [][]byte{noopMethod.GetSelector()}
 
 	txns := []types.Transaction{txn1, txn2}
-	for i := 0; i < txnNeeded; i++ {
+	for i := range txnNeeded {
 		txn, err := transaction.MakeApplicationNoOpTx(
 			App.Id,
 			append(args, []byte{byte(i)}), // args
@@ -137,7 +138,7 @@ func CreateDepositTxns(amount models.Amount, address models.Address, note *model
 // It returns the leaf index of the deposit note, the ID of the first group txn, and any error
 func SendDepositToNetwork(txns []types.Transaction, userSignedTxn []byte,
 ) (leafIndex uint64, txnId string, txnConfirmationError *TxnConfirmationError) {
-	algod := algodClient()
+	algod := AlgodClient()
 	signedGroup := []byte{}
 	// sign the deposit app call transaction with the deposit verifier
 	_, signed1, err := crypto.SignLogicSigAccountTransaction(App.DepositVerifier.Account,
@@ -249,7 +250,7 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 
 	args = append(args, noChangeAbi)
 
-	algod := algodClient()
+	algod := AlgodClient()
 	sp, err := algod.SuggestedParams().Do(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get suggested params: %v", err)
@@ -328,7 +329,7 @@ func CreateWithdrawalTxns(w *models.WithdrawalData) ([]types.Transaction, error)
 func SendWithdrawalToNetworkWithTSS(txns []types.Transaction,
 ) (leafIndex uint64, txnId string, txnConfirmationError *TxnConfirmationError) {
 
-	algod := algodClient()
+	algod := AlgodClient()
 	// sign the withdrawal app call transaction with the withdrawal verifier
 	signedGroup := []byte{}
 	_, signed1, err := crypto.SignLogicSigAccountTransaction(App.WithdrawalVerifier.Account,
@@ -353,7 +354,7 @@ func SendWithdrawalToNetworkWithTSS(txns []types.Transaction,
 		return 0, "", parseSendTransactionError(err)
 	}
 
-	// we wait on te first transaction, the deposit app call, to get the leaf index
+	// we wait on te first transaction, the withdrawal app call, to get the leaf index
 	withdrawalAppCallTxnId := crypto.GetTxID(txns[0])
 	confirmedTxn, err := transaction.WaitForConfirmation(algod, withdrawalAppCallTxnId,
 		config.WaitRounds, context.Background())
@@ -367,7 +368,7 @@ func SendWithdrawalToNetworkWithTSS(txns []types.Transaction,
 	return leafIndex, withdrawalAppCallTxnId, nil
 }
 
-// getLeafIndexAndRoot extracts the leaf index from the deposit transaction result
+// getLeafIndexAndRoot extracts the leaf index and root from the transaction result
 func getLeafIndexAndRoot(txn sdk_models.PendingTransactionInfoResponse,
 ) (leafIndex uint64, root [32]byte, err error) {
 	if len(txn.Logs) == 0 {
