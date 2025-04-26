@@ -10,9 +10,9 @@ Access it at [hermesvault.org](https://hermesvault.org)
 
 Deposits can be accesses from the `Deposit` tab.
 
-Click the `Connect Wallet` button if your wallet is not connected already, at the moment only [Pera](https://perawallet.app/) wallet is supported. You will need to set Pera to use TestNet (by default it uses MainNet), by going `Settings -> Developer Settings -> Node Settings -> TestNet`
+Click the `Connect Wallet` button if your wallet is not connected already, at the moment only [Pera](https://perawallet.app/) wallet is supported. 
 
-Once connected, you'll see your connected address in `From` field. If you need to get algo tokens in your account you can visit the [TestNet Dispenser](https://bank.testnet.algorand.network/). Type in the amount of algo you want to deposit (<u>minimum 1 algo</u>) and press `Deposit`.
+Once connected, you'll see your connected address in `From` field. Type in the amount of algo you want to deposit (<u>minimum 1 algo</u>) and press `Deposit`.
 
 A confirmation screen will appear with the secret note <b>THAT YOU MUST SAVE</b> to withdraw your tokens in the future. You will have to paste it back in the appropriate section to proceed, to make sure you have copied it.
 
