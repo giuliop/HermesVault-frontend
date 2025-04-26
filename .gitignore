@@ -1,5 +1,6 @@
 avm/devnet
 node_modules/
+test/files/
 
 .tmp/
 .vscode/

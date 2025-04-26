@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -43,7 +45,10 @@ var (
 )
 
 func init() {
-	env, err := LoadEnv("config/.env")
+	// determine path to this package’s .env file at runtime
+	_, thisFile, _, _ := runtime.Caller(0)
+	envPath := filepath.Join(filepath.Dir(thisFile), ".env")
+	env, err := LoadEnv(envPath)
 	if err != nil {
 		log.Fatalf("failed to load env: %v", err)
 	}
