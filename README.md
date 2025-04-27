@@ -18,7 +18,7 @@ A confirmation screen will appear with the secret note <b>THAT YOU MUST SAVE</b>
 
 IF YOU LOSE THAT NOTE, NOBODY WILL BE ABLE TO HELP YOU RETRIEVE YOUR TOKENS !
 
-Now click the `Confirm` button and you will be asked to open your Pera wallet and authorize the transaction. Note that the transaction fee will be 0.042 algo since it is a "heavy" transaction group which requires a lot of computation on the AVM to validate the zero knowledge proof involved.
+Now click the `Confirm` button and you will be asked to open your Pera wallet and authorize the transaction. Note that the transaction fee will be 0.056 algo to cover the computation on the AVM of the zero knowledge proof involved.
 
 If all goes well, you will get a success confirmation message. Otherwise you will get an error message explaining what went wrong.
 
