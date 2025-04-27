@@ -19,6 +19,8 @@ type Input string
 // stringToMicroAlgo converts an input representing an algo amount to an Amount
 func (input Input) ToAmount() (Amount, error) {
 	intStr, decStr, hasDecimal := strings.Cut(string(input), ".")
+	// remove thousand separators from the integer part
+	intStr = strings.ReplaceAll(intStr, ",", "")
 	integer, err := strconv.ParseUint(intStr, 10, 64)
 	if err != nil {
 		return Amount{}, fmt.Errorf("invalid integer part: %w", err)
