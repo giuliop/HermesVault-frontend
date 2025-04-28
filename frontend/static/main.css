@@ -242,9 +242,13 @@ img.centered {
     font-weight: bold;
 }
 
+.red {
+    color: #d9534f;
+}
+
 .footer {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 10px;
   color: #7f8c8d;
   font-size: 14px;
 }
