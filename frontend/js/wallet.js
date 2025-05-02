@@ -1,13 +1,20 @@
 import algosdk from "algosdk";
-import { PeraWalletConnect }  from "@perawallet/connect";
 
-// const testnetId = 416002;
-const mainnetId = 416001;
+import { WalletManager, WalletId, NetworkId } from '@txnlab/use-wallet'
 
-const peraWallet = new PeraWalletConnect({
-    // chainId: testnetId
-    chainId: mainnetId
-});
+const manager = new WalletManager({
+    wallets: [
+        WalletId.PERA,
+        WalletId.DEFLY,
+        {
+            id: WalletId.LUTE,
+            options: {
+                siteName: 'HermesVault'
+            }
+        }
+    ],
+    defaultNetwork: NetworkId.MAINNET
+})
 
 let accountAddress = "";
 
@@ -31,34 +38,74 @@ function updateUI(accounts) {
 }
 
 function reconnectSession() {
-    // Reconnect to the session when the component is mounted
-    peraWallet
-        .reconnectSession()
-        .then((accounts) => {
-            peraWallet.connector?.on("disconnect", handleDisconnectWalletClick);
+    // Resume the session if the user has already connected their wallet
+    manager
+        .resumeSessions()
+        .then(() => {
+            const accounts = manager.activeWalletAddresses || [];
             updateUI(accounts);
         })
         .catch((e) => console.log(e));
 }
 
-function handleConnectWalletClick(event) {
-    event.preventDefault();
+async function handleConnect(wallet) {
+    try {
+        await wallet.connect()
+        const accounts = manager.activeWalletAddresses || [];
+        updateUI(accounts);
+    } catch (error) {
+        console.error('Failed to connect:', error)
+    }
+}
 
-    peraWallet
-        .connect()
-        .then((accounts) => {
-            peraWallet.connector?.on("disconnect", handleDisconnectWalletClick);
-            updateUI(accounts);
-        })
-        .catch((error) => {
-            if (error?.data?.type !== "CONNECT_MODAL_CLOSED") {
-                console.log(error);
-            }
+function handleConnectWalletClick() {
+    // Create a modal dialog with a list of wallets
+    const modal = document.createElement('dialog');
+    modal.classList.add('modal');
+
+    const container = document.createElement('div');
+    container.classList.add('wallet-options');
+
+    const header = document.createElement('div');
+    header.classList.add('wallet-modal-header');
+
+    const title = document.createElement('h2');
+    title.textContent = 'Choose a Wallet';
+
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.classList.add('exit-button');
+    closeButton.addEventListener('click', () => modal.close());
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    container.appendChild(header);
+
+    for (const wallet of manager.wallets) {
+        const button = document.createElement('button');
+        button.innerHTML = `
+        <img src="${wallet.metadata.icon}" alt="${wallet.metadata.name}" />
+        <span>${wallet.metadata.name}</span>
+      `;;
+        button.addEventListener('click', () => {
+            handleConnect(wallet);
+            modal.close();
         });
+        container.appendChild(button);
+    }
+
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+    modal.showModal();
+
+    // remove modal from DOM after it's closed
+    modal.addEventListener('close', () => {
+        modal.remove();
+    });
 }
 
 function handleDisconnectWalletClick(event) {
-    peraWallet.disconnect().catch((error) => {
+    manager.disconnect().catch((error) => {
         console.log(error);
     });
 
@@ -82,15 +129,17 @@ document.addEventListener('click', async (event) => {
         const indexTxnToSign = document.querySelector(
             '[data-wallet-index-txn-to-sign-input]').value;
         const txns = decodeJsonTransactions(txnsJson);
-        let txnsToSign = [];
-        for (let i = 0; i < txns.length; i++) {
-            txnsToSign.push({ txn: txns[i], signers: [] });
-        }
-        txnsToSign[indexTxnToSign].signers = [address];
+        // let txnsToSign = [];
+        // for (let i = 0; i < txns.length; i++) {
+        //     txnsToSign.push({ txn: txns[i], signers: [] });
+        // }
+        // txnsToSign[indexTxnToSign].signers = [address];
+        const txnsToSign = txns;
 
         try {
-            const txnsFromPera = await peraWallet.signTransaction([txnsToSign], address);
-            const signedTxnBinary = txnsFromPera[0];
+            const txnsFromWallet = await manager.signTransactions(txnsToSign, [parseInt(indexTxnToSign, 10)]);
+            // const signedTxnBinary = txnsFromWallet[0];
+            const signedTxnBinary = txnsFromWallet[parseInt(indexTxnToSign, 10)];
             const signedTxnBase64 = uint8ArrayToBase64(signedTxnBinary);
             document.querySelector('[data-wallet-signed-txn-input]').value = signedTxnBase64;
             const form = event.target.closest('form');
@@ -136,9 +185,8 @@ function uint8ArrayToBase64(uint8Array) {
 }
 
 // Make functions and variables accessible from the console for debugging
-// window.peraWallet = peraWallet;
 // window.accountAddress = accountAddress;
-// window.updateUIAfterConnect = updateUI;
+// window.updateUI = updateUI;
 // window.reconnectSession = reconnectSession;
 // window.handleConnectWalletClick = handleConnectWalletClick;
 // window.handleDisconnectWalletClick = handleDisconnectWalletClick;
