@@ -10,7 +10,7 @@ Access it at [hermesvault.org](https://hermesvault.org)
 
 Deposits can be accesses from the `Deposit` tab.
 
-Click the `Connect Wallet` button if your wallet is not connected already, at the moment only [Pera](https://perawallet.app/) wallet is supported. 
+Click the `Connect Wallet` button if your wallet is not connected already, supported wallets are [Pera](https://perawallet.app/), [Lute](https://lute.app/), and [Defly](https://defly.app/) (mobile).
 
 Once connected, you'll see your connected address in `From` field. Type in the amount of algo you want to deposit (<u>minimum 1 algo</u>) and press `Deposit`.
 
@@ -18,7 +18,7 @@ A confirmation screen will appear with the secret note <b>THAT YOU MUST SAVE</b>
 
 IF YOU LOSE THAT NOTE, NOBODY WILL BE ABLE TO HELP YOU RETRIEVE YOUR TOKENS !
 
-Now click the `Confirm` button and you will be asked to open your Pera wallet and authorize the transaction. Note that the transaction fee will be 0.056 algo to cover the computation on the AVM of the zero knowledge proof involved.
+Now click the `Confirm` button and you will be asked to open your wallet and authorize the transaction. Note that the transaction fee will be 0.056 algo to cover the computation on the AVM of the zero knowledge proof involved.
 
 If all goes well, you will get a success confirmation message. Otherwise you will get an error message explaining what went wrong.
 
