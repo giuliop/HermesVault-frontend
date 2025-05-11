@@ -124,33 +124,25 @@ document.addEventListener('click', async (event) => {
     }
     if (event.target.matches('[data-wallet-confirm-deposit-button]')) {
         event.preventDefault();
-        const address = document.querySelector('[data-wallet-address-input]').value;
         const txnsJson = document.querySelector('[data-wallet-txnsjson-input]').value;
         const indexTxnToSign = document.querySelector(
             '[data-wallet-index-txn-to-sign-input]').value;
-        const txns = decodeJsonTransactions(txnsJson);
-        // let txnsToSign = [];
-        // for (let i = 0; i < txns.length; i++) {
-        //     txnsToSign.push({ txn: txns[i], signers: [] });
-        // }
-        // txnsToSign[indexTxnToSign].signers = [address];
-        const txnsToSign = txns;
+        const txnsToSign = decodeJsonTransactions(txnsJson);
 
         try {
-            const txnsFromWallet = await manager.signTransactions(txnsToSign, [parseInt(indexTxnToSign, 10)]);
-            // const signedTxnBinary = txnsFromWallet[0];
+            const txnsFromWallet = await manager.signTransactions(
+                txnsToSign, [parseInt(indexTxnToSign, 10)]);
             const signedTxnBinary = txnsFromWallet[parseInt(indexTxnToSign, 10)];
             const signedTxnBase64 = uint8ArrayToBase64(signedTxnBinary);
             document.querySelector('[data-wallet-signed-txn-input]').value = signedTxnBase64;
             const form = event.target.closest('form');
-        event.target.disabled = true;
+            event.target.disabled = true;
             htmx.trigger(form, 'submit');
 
         } catch (error) {
             console.log(error);
             let errorBox = document.querySelector('[data-wallet-errorBox]');
-            errorBox.innerHTML = (
-                "Error signing the transaction, please try again");
+            errorBox.innerHTML = "Error signing the transaction, please try again";
             htmx.trigger(errorBox, 'htmx:after-swap');
             event.target.disabled = false;
         }
@@ -168,11 +160,14 @@ document.addEventListener('htmx:load', (event) => {
     }
 });
 
-// decode a json string representing an array of transactions.
-// each array element is the base64 msgpack encoding of an unsigned transaction
+// Decodes a JSON array of base64-encoded unsigned transactions into
+// an array of Transaction objects
 function decodeJsonTransactions(json) {
     const txns = JSON.parse(json);
-    return txns.map(txn => algosdk.decodeUnsignedTransaction(new Uint8Array(Buffer.from(txn, 'base64'))));
+    return txns.map(b64 => {
+        const bytes  = algosdk.base64ToBytes(b64);
+        return algosdk.decodeUnsignedTransaction(bytes);
+    });
 }
 
 // convert a Uint8Array to a base64 string
@@ -183,10 +178,3 @@ function uint8ArrayToBase64(uint8Array) {
     }
     return btoa(binaryString);
 }
-
-// Make functions and variables accessible from the console for debugging
-// window.accountAddress = accountAddress;
-// window.updateUI = updateUI;
-// window.reconnectSession = reconnectSession;
-// window.handleConnectWalletClick = handleConnectWalletClick;
-// window.handleDisconnectWalletClick = handleDisconnectWalletClick;
