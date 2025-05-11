@@ -1,6 +1,5 @@
 import algosdk from "algosdk";
-
-import { WalletManager, WalletId, NetworkId } from '@txnlab/use-wallet'
+import { WalletManager, WalletId, NetworkId } from '@txnlab/use-wallet';
 
 const manager = new WalletManager({
     wallets: [
@@ -8,13 +7,11 @@ const manager = new WalletManager({
         WalletId.DEFLY,
         {
             id: WalletId.LUTE,
-            options: {
-                siteName: 'HermesVault'
-            }
+            options: { siteName: 'HermesVault' }
         }
     ],
     defaultNetwork: NetworkId.MAINNET
-})
+});
 
 let accountAddress = "";
 
@@ -62,6 +59,9 @@ function handleConnectWalletClick() {
     // Create a modal dialog with a list of wallets
     const modal = document.createElement('dialog');
     modal.classList.add('modal');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Select a wallet to connect');
 
     const container = document.createElement('div');
     container.classList.add('wallet-options');
@@ -86,7 +86,7 @@ function handleConnectWalletClick() {
         button.innerHTML = `
         <img src="${wallet.metadata.icon}" alt="${wallet.metadata.name}" />
         <span>${wallet.metadata.name}</span>
-      `;;
+      `;
         button.addEventListener('click', () => {
             handleConnect(wallet);
             modal.close();
@@ -104,12 +104,13 @@ function handleConnectWalletClick() {
     });
 }
 
-function handleDisconnectWalletClick(event) {
-    manager.disconnect().catch((error) => {
-        console.log(error);
-    });
-
-    updateUI([]);
+async function handleDisconnectWalletClick() {
+    try {
+        await manager.disconnect();
+        updateUI([]);
+    } catch (e) {
+        console.error('Disconnect failed', e);
+    }
 }
 
 // trigger on connet wallet button and confirm deposit button
@@ -133,7 +134,7 @@ document.addEventListener('click', async (event) => {
             const txnsFromWallet = await manager.signTransactions(
                 txnsToSign, [parseInt(indexTxnToSign, 10)]);
             const signedTxnBinary = txnsFromWallet[parseInt(indexTxnToSign, 10)];
-            const signedTxnBase64 = uint8ArrayToBase64(signedTxnBinary);
+            const signedTxnBase64 = algosdk.bytesToBase64(signedTxnBinary);
             document.querySelector('[data-wallet-signed-txn-input]').value = signedTxnBase64;
             const form = event.target.closest('form');
             event.target.disabled = true;
@@ -168,13 +169,4 @@ function decodeJsonTransactions(json) {
         const bytes  = algosdk.base64ToBytes(b64);
         return algosdk.decodeUnsignedTransaction(bytes);
     });
-}
-
-// convert a Uint8Array to a base64 string
-function uint8ArrayToBase64(uint8Array) {
-    let binaryString = '';
-    for (let i = 0; i < uint8Array.length; i++) {
-        binaryString += String.fromCharCode(uint8Array[i]);
-    }
-    return btoa(binaryString);
 }
