@@ -133,6 +133,11 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Log successful withdrawal
+	log.Printf("leaf index: %d, type: WITHDRAWAL, amount: %s ALGO, address: %s",
+		leafIndex, models.MicroAlgosToAlgoString(withdrawData.Amount.Microalgos),
+		string(withdrawData.Address))
+
 	withdrawData.ChangeNote.LeafIndex = leafIndex
 	if txnId != withdrawData.ChangeNote.TxnID {
 		log.Printf("Withdrawal txnId mismatch: %v != %v", txnId, withdrawData.ChangeNote.TxnID)

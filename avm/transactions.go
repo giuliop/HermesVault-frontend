@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/giuliop/HermesVault-frontend/config"
 	"github.com/giuliop/HermesVault-frontend/models"
@@ -174,6 +173,7 @@ func SendDepositToNetwork(txns []types.Transaction, userSignedTxn []byte,
 	if err != nil {
 		return 0, "", InternalError("failed to get leaf index: " + err.Error())
 	}
+
 	return leafIndex, depositAppCallTxnId, nil
 }
 
@@ -381,7 +381,6 @@ func getLeafIndexAndRoot(txn sdk_models.PendingTransactionInfoResponse,
 	leafIndex = binary.BigEndian.Uint64(abiBytes[4:12])
 	rootBytes := abiBytes[12:]
 	copy(root[:], rootBytes)
-	log.Printf("leaf index: %d, root: %x\n", leafIndex, root)
 
 	return leafIndex, root, nil
 }

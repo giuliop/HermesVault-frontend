@@ -158,6 +158,11 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Log successful deposit
+	log.Printf("leaf index: %d, type: DEPOSIT, amount: %s ALGO, address: %s",
+		leafIndex, models.MicroAlgosToAlgoString(depositData.Amount.Microalgos),
+		string(depositData.Address))
+
 	depositData.Note.LeafIndex = leafIndex
 	if txnId != depositData.Note.TxnID {
 		log.Printf("Deposit txnId mismatch. %v != %v", txnId, depositData.Note.TxnID)
