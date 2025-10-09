@@ -75,6 +75,17 @@ func CompileTealFromFile(tealPath string) ([]byte, error) {
 	return binary, nil
 }
 
+// GetBalance returns the balance net of MBR of the given address in microAlgos
+func GetNetBalance(address string) (uint64, error) {
+	algodClient := AlgodClient()
+
+	accountInfo, err := algodClient.AccountInformation(address).Do(context.Background())
+	if err != nil {
+		return 0, fmt.Errorf("failed to get account information: %v", err)
+	}
+	return accountInfo.Amount - accountInfo.MinBalance, nil
+}
+
 // abiEncode encodes arg into its abi []byte representation
 func abiEncode(arg any, abiTypeName string) ([]byte, error) {
 	abiType, err := abi.TypeOf(abiTypeName)

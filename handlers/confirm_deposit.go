@@ -7,11 +7,13 @@ import (
 	"net/http"
 
 	"github.com/giuliop/HermesVault-frontend/avm"
+	"github.com/giuliop/HermesVault-frontend/config"
 	"github.com/giuliop/HermesVault-frontend/db"
 	"github.com/giuliop/HermesVault-frontend/memstore"
 	"github.com/giuliop/HermesVault-frontend/models"
 
 	"github.com/algorand/go-algorand-sdk/v2/encoding/msgpack"
+	"github.com/algorand/go-algorand-sdk/v2/transaction"
 	"github.com/algorand/go-algorand-sdk/v2/types"
 )
 
@@ -125,26 +127,54 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		case avm.ErrOverSpend:
 			log.Printf("Deposit transaction overspent: %v", confirmationError.Error())
-			msg := `You do not have enough funds to cover this deposit`
+			var msg string
+			var maxSpend uint64
+			balance, err := avm.GetNetBalance(string(address))
+			if err == nil {
+				if balance <= config.DepositMinFeeMultiplier*transaction.MinTxnFee {
+					maxSpend = 0
+				} else {
+					maxSpend = balance -
+						config.DepositMinFeeMultiplier*transaction.MinTxnFee
+				}
+				msg = fmt.Sprintf("The maximum amount you can deposit is %s ALGO",
+					models.MicroAlgosToAlgoString(maxSpend))
+			} else {
+				msg = `You do not have enough funds to cover this deposit`
+			}
 			http.Error(w, modalDepositFailed(msg), http.StatusUnprocessableEntity)
 			return
 		case avm.ErrMinimumBalanceRequirement:
 			log.Printf("Deposit transaction fails MBR: %v", confirmationError.Error())
-			msg := `Your account would go below the minimum balance requirement with this
-					deposit`
+			var msg string
+			var maxSpend uint64
+			balance, err := avm.GetNetBalance(string(address))
+			if err == nil {
+				if balance <= config.DepositMinFeeMultiplier*transaction.MinTxnFee {
+					maxSpend = 0
+				} else {
+					maxSpend = balance -
+						config.DepositMinFeeMultiplier*transaction.MinTxnFee
+				}
+				msg = fmt.Sprintf("The maximum amount you can deposit is %s ALGO",
+					models.MicroAlgosToAlgoString(maxSpend))
+			} else {
+				msg = `You do not have enough funds to cover the account minimum
+					   balance requirement with this deposit`
+			}
 			http.Error(w, modalDepositFailed(msg), http.StatusUnprocessableEntity)
 			return
 		case avm.ErrExpired:
 			log.Printf("Deposit transaction expired: %v", confirmationError.Error())
-			msg := `Too much time has passed and your deposit transaction has expired.<br>
-					Please try again`
+			msg := `Too much time has passed and your deposit transaction has expired.
+					<br>Please try again`
 			http.Error(w, modalDepositFailed(msg), http.StatusRequestTimeout)
 			return
 		case avm.ErrWaitTimeout:
 			log.Printf("Deposit transaction timed out: %v", confirmationError.Error())
 			msg := `Your deposit has not been confirmed by the network yet.<br>
-					Please wait a few minutes and check your wallet to see if the deposit
-					was sent.<br>
+					Please wait a few minutes and check your wallet to see if the
+					deposit was sent.<br>
 					If not, please try again.`
 			http.Error(w, modalDepositFailed(msg), http.StatusRequestTimeout)
 			return
