@@ -34,6 +34,7 @@ func MaxDepositHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to compute max deposit amount", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Max deposit amount for %s: %d microAlgos", address, maxAmount)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	maxAmountInput := html.EscapeString(microAlgosToInputAmount(maxAmount))

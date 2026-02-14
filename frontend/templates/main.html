@@ -92,14 +92,17 @@
    hx-swap="outerHTML"
    hx-target-error="#errorBox"
    hx-on::config-request="const addressInput = document.querySelector('[data-wallet-address]'); if (addressInput) { event.detail.parameters.address = addressInput.dataset.fullValue || addressInput.value; }">
-    max
+    (max)
 </a>
 {{end}}
 
 {{define "depositForm"}}
 {{template "tabList" "deposit"}}
 <div id="tab-content" class="tab-content" role="tabpanel" data-wallet>
-	<h2>Deposit</h2>
+    <div class="deposit-heading-row">
+        <h2>Deposit</h2>
+        {{template "depositMaxLink"}}
+    </div>
 	<form hx-post="deposit"
           hx-target-error="#errorBox"
           hx-indicator="#spinner"
@@ -112,7 +115,6 @@
                 Amount
             </label>
             <span class="deposit-amount-input-wrap">
-                {{template "depositMaxLink"}}
                 <input type="number" id="depositAmount" name="amount"
                        data-wallet-amount
                        placeholder="algo to deposit"

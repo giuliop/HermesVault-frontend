@@ -31,15 +31,44 @@ h1.title:has(+ div figure) {
     visibility: hidden;
 }
 
-.deposit-amount-input-wrap {
+.deposit-heading-row {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--gap);
 }
 
-.deposit-amount-input-wrap a {
-    font-size: 0.9em;
-    margin-bottom: 4px;
+.deposit-heading-row h2 {
+    margin: 0;
+}
+
+.deposit-heading-row a {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 0.88em;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--fg);
+    line-height: 1.2;
+    opacity: 0.75;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+}
+
+.deposit-heading-row a:hover {
+    font-weight: 700;
+    opacity: 1;
+    text-decoration: none;
+}
+
+.deposit-heading-row a:focus,
+.deposit-heading-row a:focus-visible,
+.deposit-heading-row a:active {
+    text-decoration: none;
+}
+
+.deposit-amount-input-wrap {
+    display: block;
 }
 
 .deposit-amount-input-wrap input {
