@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/giuliop/HermesVault-frontend/config"
 	"github.com/giuliop/HermesVault-frontend/models"
@@ -36,8 +37,13 @@ type AppJson struct {
 	CreationBlock uint64 `json:"creationBlock"`
 }
 
+// MinimumBalance is the minimum balance required for an Algorand account in microAlgos.
+
+var MinimumBalance uint64
+
 func init() {
 	App = setupApp()
+	MinimumBalance = getMinimumBalance()
 }
 
 // setupApp sets up the app instance from the app setup files
@@ -101,7 +107,7 @@ func pathTo(file string) string {
 }
 
 // DecodeJSONFile decodes the JSON filepath into the given interface
-func decodeJSONFile(filepath string, v interface{}) {
+func decodeJSONFile(filepath string, v any) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		log.Fatalf("Error opening file %s: %v", filepath, err)
@@ -112,4 +118,28 @@ func decodeJSONFile(filepath string, v interface{}) {
 	if err := decoder.Decode(v); err != nil {
 		log.Fatalf("Error decoding file %s: %v", filepath, err)
 	}
+}
+
+// getMinimumBalance returns the minimum balance required for an Algorand account
+// in microAlgos, we get it from reading the minimum balance from TSS logic signature,
+// since it has no opt-ins.
+func getMinimumBalance() uint64 {
+	const attempts = 3
+	const retryDelay = time.Second
+	var lastErr error
+
+	for attempt := 1; attempt <= attempts; attempt++ {
+		_, mbr, err := GetBalanceAndMBR(App.TSS.Address.String())
+		if err == nil {
+			return mbr
+		}
+		lastErr = err
+		log.Printf("Error getting balance and MBR (attempt %d/%d): %v", attempt, attempts, err)
+		if attempt < attempts {
+			time.Sleep(retryDelay)
+		}
+	}
+
+	log.Fatalf("Error getting balance and MBR after %d attempts: %v", attempts, lastErr)
+	return 0
 }

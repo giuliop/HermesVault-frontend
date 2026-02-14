@@ -75,15 +75,15 @@ func CompileTealFromFile(tealPath string) ([]byte, error) {
 	return binary, nil
 }
 
-// GetBalance returns the balance net of MBR of the given address in microAlgos
-func GetNetBalance(address string) (uint64, error) {
+// GetBalance returns the balance and MBR of the given address in microAlgos
+func GetBalanceAndMBR(address string) (uint64, uint64, error) {
 	algodClient := AlgodClient()
 
 	accountInfo, err := algodClient.AccountInformation(address).Do(context.Background())
 	if err != nil {
-		return 0, fmt.Errorf("failed to get account information: %v", err)
+		return 0, 0, fmt.Errorf("failed to get account information: %v", err)
 	}
-	return accountInfo.Amount - accountInfo.MinBalance, nil
+	return accountInfo.Amount, accountInfo.MinBalance, nil
 }
 
 // abiEncode encodes arg into its abi []byte representation

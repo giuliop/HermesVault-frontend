@@ -17,6 +17,32 @@ import (
 	"github.com/algorand/go-algorand-sdk/v2/types"
 )
 
+// maxDepositAmount returns the maximum amount in microalgos that a user can deposit.
+// This is the current balance, minus the MBR, minus the deposit txn fee.
+func maxDepositAmount(address models.Address) (uint64, error) {
+	balance, mbr, err := avm.GetBalanceAndMBR(string(address))
+	if err != nil {
+		return 0, err
+	}
+
+	var netBalance uint64
+
+	// if the MBR is just the minimum, the account could be closed-out
+	if mbr == avm.MinimumBalance {
+		netBalance = balance
+	} else if balance < mbr {
+		return 0, nil
+	} else {
+		netBalance = balance - mbr
+	}
+
+	fee := uint64(config.DepositMinFeeMultiplier * transaction.MinTxnFee)
+	if netBalance <= fee {
+		return 0, nil
+	}
+	return netBalance - fee, nil
+}
+
 func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -119,24 +145,20 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 
 	if confirmationError != nil {
 		switch confirmationError.Type {
+
 		case avm.ErrRejected:
 			log.Printf("Deposit transaction rejected: %v", confirmationError.Error())
 			msg := `Your deposit transaction was rejected by the network.<br>
 					Please try again`
 			http.Error(w, modalDepositFailed(msg), http.StatusUnprocessableEntity)
 			return
+
 		case avm.ErrOverSpend:
 			log.Printf("Deposit transaction overspent: %v", confirmationError.Error())
 			var msg string
-			var maxSpend uint64
-			balance, err := avm.GetNetBalance(string(address))
+
+			maxSpend, err := maxDepositAmount(address)
 			if err == nil {
-				if balance <= config.DepositMinFeeMultiplier*transaction.MinTxnFee {
-					maxSpend = 0
-				} else {
-					maxSpend = balance -
-						config.DepositMinFeeMultiplier*transaction.MinTxnFee
-				}
 				msg = fmt.Sprintf("The maximum amount you can deposit is %s ALGO",
 					models.MicroAlgosToAlgoString(maxSpend))
 			} else {
@@ -144,18 +166,13 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Error(w, modalDepositFailed(msg), http.StatusUnprocessableEntity)
 			return
+
 		case avm.ErrMinimumBalanceRequirement:
 			log.Printf("Deposit transaction fails MBR: %v", confirmationError.Error())
 			var msg string
-			var maxSpend uint64
-			balance, err := avm.GetNetBalance(string(address))
+
+			maxSpend, err := maxDepositAmount(address)
 			if err == nil {
-				if balance <= config.DepositMinFeeMultiplier*transaction.MinTxnFee {
-					maxSpend = 0
-				} else {
-					maxSpend = balance -
-						config.DepositMinFeeMultiplier*transaction.MinTxnFee
-				}
 				msg = fmt.Sprintf("The maximum amount you can deposit is %s ALGO",
 					models.MicroAlgosToAlgoString(maxSpend))
 			} else {
@@ -164,12 +181,14 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Error(w, modalDepositFailed(msg), http.StatusUnprocessableEntity)
 			return
+
 		case avm.ErrExpired:
 			log.Printf("Deposit transaction expired: %v", confirmationError.Error())
 			msg := `Too much time has passed and your deposit transaction has expired.
 					<br>Please try again`
 			http.Error(w, modalDepositFailed(msg), http.StatusRequestTimeout)
 			return
+
 		case avm.ErrWaitTimeout:
 			log.Printf("Deposit transaction timed out: %v", confirmationError.Error())
 			msg := `Your deposit has not been confirmed by the network yet.<br>
@@ -178,6 +197,7 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 					If not, please try again.`
 			http.Error(w, modalDepositFailed(msg), http.StatusRequestTimeout)
 			return
+
 		case avm.ErrInternal:
 			log.Printf("Internal error sending deposit transaction: %v",
 				confirmationError.Error())
