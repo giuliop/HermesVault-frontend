@@ -83,6 +83,19 @@
 </div>
 {{end}}
 
+{{define "depositMaxLink"}}
+<a href="#"
+   hidden
+   data-wallet-max-link
+   hx-get="/max-deposit"
+   hx-target="[data-wallet-amount]"
+   hx-swap="outerHTML"
+   hx-target-error="#errorBox"
+   hx-on::config-request="const addressInput = document.querySelector('[data-wallet-address]'); if (addressInput) { event.detail.parameters.address = addressInput.dataset.fullValue || addressInput.value; }">
+    max
+</a>
+{{end}}
+
 {{define "depositForm"}}
 {{template "tabList" "deposit"}}
 <div id="tab-content" class="tab-content" role="tabpanel" data-wallet>
@@ -98,10 +111,14 @@
             <label for="depositAmount">
                 Amount
             </label>
-            <input type="number" id="depositAmount" name="amount"
-                   placeholder="algo to deposit"
-                   step="0.000001" min="1"
-                   required>
+            <span class="deposit-amount-input-wrap">
+                {{template "depositMaxLink"}}
+                <input type="number" id="depositAmount" name="amount"
+                       data-wallet-amount
+                       placeholder="algo to deposit"
+                       step="0.000001" min="1"
+                       required>
+            </span>
         </p>
         <p class="row">
             <label for="depositAddress">

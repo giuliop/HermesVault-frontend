@@ -19,6 +19,13 @@ function updateUI(accounts) {
     const addressInput = document.querySelector('[data-wallet-address]');
     const depositButton = document.querySelector('[data-wallet-deposit-button]');
     const walletButton = document.querySelector('[data-wallet-connect-button]');
+    const maxLink = document.querySelector('[data-wallet-max-link]');
+    const amountInput = document.querySelector('[data-wallet-amount]');
+
+    if (!addressInput || !depositButton || !walletButton) {
+        return;
+    }
+
     if (accounts.length) {
         accountAddress = accounts[0];
         addressInput.value = accountAddress;
@@ -26,11 +33,20 @@ function updateUI(accounts) {
         addressInput.dispatchEvent(new Event('blur'));
         depositButton.classList.remove('hidden');
         walletButton.textContent = "Disconnect Wallet";
+        if (maxLink) {
+            maxLink.hidden = false;
+        }
     } else {
         accountAddress = "";
         addressInput.value = "";
+        if (amountInput) {
+            amountInput.value = "";
+        }
         depositButton.classList.add('hidden');
         walletButton.textContent = "Connect Wallet";
+        if (maxLink) {
+            maxLink.hidden = true;
+        }
     }
 }
 

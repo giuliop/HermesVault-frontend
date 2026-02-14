@@ -31,6 +31,21 @@ h1.title:has(+ div figure) {
     visibility: hidden;
 }
 
+.deposit-amount-input-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.deposit-amount-input-wrap a {
+    font-size: 0.9em;
+    margin-bottom: 4px;
+}
+
+.deposit-amount-input-wrap input {
+    width: 100%;
+}
+
 button {
     font-size: inherit;
     margin-bottom: 20px;
@@ -378,4 +393,3 @@ img.centered {
     --accent: var(--blue-2);
     --muted-accent: var(--blue-5);
 }
-
