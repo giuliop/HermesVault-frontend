@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/giuliop/HermesVault-frontend/config"
 	"github.com/giuliop/HermesVault-frontend/models"
@@ -22,7 +23,7 @@ import (
 //  2. the deposit transaction to the contract address to be signed by the user
 //  3. the additional app call transactions needed to meet the opcode budget to be signed
 //     by the TSS account
-func CreateDepositTxns(amount models.Amount, address models.Address, note *models.Note,
+func CreateDepositTxns(amount models.Amount, userAddress models.Address, note *models.Note,
 ) ([]types.Transaction, error) {
 
 	assignment := &circuits.DepositCircuit{
@@ -43,7 +44,7 @@ func CreateDepositTxns(amount models.Amount, address models.Address, note *model
 	appArgs := [][]byte{depositMethod.GetSelector()}
 	appArgs = append(appArgs, zkArgs...)
 
-	addressBytes, err := types.DecodeAddress(string(address))
+	addressBytes, err := types.DecodeAddress(string(userAddress))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode address: %v", err)
 	}
@@ -81,18 +82,33 @@ func CreateDepositTxns(amount models.Amount, address models.Address, note *model
 	}
 
 	// txn2 is the deposit transaction to the contract address signed by the user
+	txnFee := types.MicroAlgos(transaction.MinTxnFee * config.DepositMinFeeMultiplier)
+	contractAddress := crypto.GetApplicationAddress(App.Id).String()
+	closeRemainderTo := types.ZeroAddress.String()
+	accountInfo, err := algod.AccountInformation(string(userAddress)).
+		Do(context.Background())
+	if err != nil {
+		log.Printf("failed to get account information: - %v -; "+
+			"proceeding without full-balance close-out optimization", err)
+	} else if accountInfo.Amount >= uint64(txnFee) &&
+		amount.Microalgos == accountInfo.Amount-uint64(txnFee) {
+		// If the user is sending the whole account balance (net of txn fee),
+		// close the account into the contract.
+		closeRemainderTo = contractAddress
+	}
+
 	txn2, err := transaction.MakePaymentTxn(
-		string(address), // from
-		crypto.GetApplicationAddress(App.Id).String(), // to
+		string(userAddress), // from
+		contractAddress,     // to
 		amount.Microalgos,
-		nil,                        // note
-		types.ZeroAddress.String(), // closeRemainderTo
+		nil,              // note
+		closeRemainderTo, // closeRemainderTo
 		sp,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make payment txn: %v", err)
 	}
-	txn2.Fee = transaction.MinTxnFee * config.DepositMinFeeMultiplier
+	txn2.Fee = txnFee
 
 	// additional transactions needed to meet the opcode budget
 	// we make them app calls to count also for smart contract opcode pooling.
