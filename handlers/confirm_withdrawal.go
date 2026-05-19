@@ -163,6 +163,13 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 	saveNoteToDbError = db.SaveNote(withdrawData.ChangeNote)
 	if saveNoteToDbError != nil {
 		log.Printf("Error saving withdrawal to db: %v", saveNoteToDbError)
+		if err := db.RecordFatalMarker(
+			"confirmed withdrawal note persistence failed: txn_id=%s leaf_index=%d: %v",
+			withdrawData.ChangeNote.TxnID, withdrawData.ChangeNote.LeafIndex,
+			saveNoteToDbError,
+		); err != nil {
+			log.Printf("Error recording fatal marker for withdrawal persistence failure: %v", err)
+		}
 	}
 }
 

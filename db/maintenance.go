@@ -131,6 +131,12 @@ func CleanupUnconfirmedNotes() {
 			} else {
 				// Commitment mismatch: log an error and leave the note intact.
 				log.Printf("Commitment mismatch for unconfirmed note id %d with txn_id %s", id, txnID)
+				if err := RecordFatalMarker(
+					"unconfirmed note commitment mismatch: id=%d txn_id=%s txns_leaf_index=%d",
+					id, txnID, txnLeafIndex,
+				); err != nil {
+					log.Printf("failed to record fatal marker for unconfirmed note id %d: %v", id, err)
+				}
 			}
 		}
 	}

@@ -237,6 +237,12 @@ func ConfirmDepositHandler(w http.ResponseWriter, r *http.Request) {
 	saveNoteToDbError = db.SaveNote(depositData.Note)
 	if saveNoteToDbError != nil {
 		log.Printf("Error saving deposit to db: %v", saveNoteToDbError)
+		if err := db.RecordFatalMarker(
+			"confirmed deposit note persistence failed: txn_id=%s leaf_index=%d: %v",
+			depositData.Note.TxnID, depositData.Note.LeafIndex, saveNoteToDbError,
+		); err != nil {
+			log.Printf("Error recording fatal marker for deposit persistence failure: %v", err)
+		}
 	}
 }
 

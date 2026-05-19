@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -75,14 +74,14 @@ func main() {
 }
 
 func subscriberHealthGuard(next http.Handler) http.Handler {
-	fatalPath := filepath.Join(filepath.Dir(config.TxnsDbPath), "subscriber.fatal")
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := os.Stat(fatalPath); err == nil {
+		hasFatalMarker, err := db.HasFatalMarker()
+		if err != nil {
+			log.Printf("Error checking subscriber fatal marker: %v", err)
 			http.Error(w, "Service temporarily unavailable", http.StatusServiceUnavailable)
 			return
-		} else if err != nil && !os.IsNotExist(err) {
-			log.Printf("Error checking subscriber fatal marker: %v", err)
+		}
+		if hasFatalMarker {
 			http.Error(w, "Service temporarily unavailable", http.StatusServiceUnavailable)
 			return
 		}

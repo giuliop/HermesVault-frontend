@@ -94,6 +94,8 @@ pipenv run python main.py
 - Apache also enters maintenance mode when `/home/gws/dev/algorand/hermes/HermesVault-frontend/data/txns/subscriber.fatal` exists.
 - The Go webserver has a `subscriberHealthGuard` fallback that returns 503 when `subscriber.fatal` exists, mainly for direct localhost access or Apache bypasses.
 - The Python subscriber writes `data/txns/subscriber.fatal` on unrecoverable transaction conflicts, then stops processing so it does not continue serving stale or inconsistent transaction state.
+- The subscriber validates `txns.db` at startup and after writes for contiguous leaves, root leaf-count drift, transaction shape, and stats drift. Integrity failures write `subscriber.fatal`.
+- The Go webserver also writes `subscriber.fatal` when a confirmed deposit/withdrawal cannot be persisted into `internal.db`, or when cleanup finds an unconfirmed note whose commitment does not match the confirmed chain transaction.
 - `redeploy.sh` removes `data/txns/subscriber.fatal` before restarting services. Do not remove the marker by hand unless the underlying subscriber failure has been understood and fixed.
 - Telegram alerting for `subscriber.fatal` is installed from `ops/install-telegram-alerts.sh`. It installs a systemd `.path` watcher and retrying oneshot `.service`.
 - Telegram secrets belong in `/etc/hermesvault-alert.env` with root-only permissions, not in `config/.env` or the repository.

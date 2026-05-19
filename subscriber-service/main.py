@@ -144,11 +144,15 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.fastcatchup:
-        watermark_catchup = algod.status()["last-round"]
-        init(watermark_catchup)
-    else:
-        init()
+    try:
+        if args.fastcatchup:
+            watermark_catchup = algod.status()["last-round"]
+            init(watermark_catchup)
+        else:
+            init()
+    except db.SubscriberFatalError as error:
+        db.record_fatal_error(error)
+        sleep_after_fatal_error()
 
     if db.has_fatal_error():
         sleep_after_fatal_error()
@@ -187,7 +191,7 @@ def main():
     subscriber.on(withdrawFilter['name'], handle_transaction)
 
     def handle_error(error: Exception, _) -> None:
-        if isinstance(error, db.TxnConflictError):
+        if isinstance(error, db.SubscriberFatalError):
             db.record_fatal_error(error)
             subscriber.stop(str(error))
             return

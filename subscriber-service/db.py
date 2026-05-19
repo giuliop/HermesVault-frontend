@@ -21,7 +21,15 @@ FATAL_ERROR_FILE = "subscriber.fatal"
 fatal_error_path = None
 
 
-class TxnConflictError(RuntimeError):
+class SubscriberFatalError(RuntimeError):
+    pass
+
+
+class TxnConflictError(SubscriberFatalError):
+    pass
+
+
+class TxnIntegrityError(SubscriberFatalError):
     pass
 
 
@@ -57,6 +65,99 @@ def update_root_and_watermark(cursor: sqlite3.Cursor, root: bytes, leaf_count: i
         )
 
     cursor.execute("UPDATE watermark SET value = MAX(value, ?) WHERE id = 1", (block,))
+
+
+def validate_database_integrity(cursor: sqlite3.Cursor | None = None) -> None:
+    if cursor is None:
+        if db_conn is None:
+            raise TxnIntegrityError("database connection is not initialized")
+        cursor = db_conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*), COALESCE(MIN(leaf_index), 0), COALESCE(MAX(leaf_index), -1) "
+        "FROM txns"
+    )
+    txn_count, min_leaf_index, max_leaf_index = cursor.fetchone()
+    if txn_count > 0 and (min_leaf_index != 0 or max_leaf_index != txn_count - 1):
+        raise TxnIntegrityError(
+            f"non-contiguous txns leaf indexes: count={txn_count}, "
+            f"min={min_leaf_index}, max={max_leaf_index}"
+        )
+
+    cursor.execute("SELECT value, leaf_count FROM roots WHERE id = 1")
+    root_row = cursor.fetchone()
+    if root_row is None:
+        raise TxnIntegrityError("missing root row")
+
+    root, leaf_count = root_row
+    if leaf_count != txn_count:
+        raise TxnIntegrityError(
+            f"root leaf_count {leaf_count} does not match txns count {txn_count}"
+        )
+    if txn_count == 0 and root != b"":
+        raise TxnIntegrityError("empty txns table has a non-empty root")
+
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(SUM(CASE WHEN txn_type = ? THEN amount ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_type = ? THEN amount ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_type = ? THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_type NOT IN (?, ?) THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN amount < 0 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN length(commitment) != 32 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_type = ? AND from_nullifier IS NOT NULL THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_type = ? AND (from_nullifier IS NULL OR length(from_nullifier) != 32) THEN 1 ELSE 0 END), 0)
+        FROM txns
+        """,
+        (
+            DEPOSIT_TXN_TYPE,
+            WITHDRAWAL_TXN_TYPE,
+            DEPOSIT_TXN_TYPE,
+            DEPOSIT_TXN_TYPE,
+            WITHDRAWAL_TXN_TYPE,
+            DEPOSIT_TXN_TYPE,
+            WITHDRAWAL_TXN_TYPE,
+        ),
+    )
+    (
+        deposit_total,
+        withdrawal_total,
+        deposit_count,
+        invalid_type_count,
+        invalid_amount_count,
+        invalid_commitment_count,
+        deposit_nullifier_count,
+        withdrawal_nullifier_count,
+    ) = cursor.fetchone()
+
+    invalid_counts = {
+        "invalid transaction types": invalid_type_count,
+        "negative transaction amounts": invalid_amount_count,
+        "invalid commitment lengths": invalid_commitment_count,
+        "deposits with nullifiers": deposit_nullifier_count,
+        "withdrawals without 32-byte nullifiers": withdrawal_nullifier_count,
+    }
+    for label, count in invalid_counts.items():
+        if count:
+            raise TxnIntegrityError(f"{label}: {count}")
+
+    cursor.execute(
+        "SELECT key, value FROM stats "
+        "WHERE key IN ('total_deposits', 'total_withdrawals', 'count_deposits')"
+    )
+    stats = dict(cursor.fetchall())
+    expected_stats = {
+        "total_deposits": deposit_total,
+        "total_withdrawals": withdrawal_total,
+        "count_deposits": deposit_count,
+    }
+    for key, expected in expected_stats.items():
+        actual = stats.get(key)
+        if actual != expected:
+            raise TxnIntegrityError(
+                f"stats mismatch for {key}: stored={actual}, expected={expected}"
+            )
 
 
 def existing_txn_matches(cursor: sqlite3.Cursor, expected: tuple) -> bool:
@@ -114,6 +215,7 @@ def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
             cursor.execute("UPDATE stats SET value = value + 1 WHERE key = 'count_deposits'")
 
         update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
+        validate_database_integrity(cursor)
 
         db_conn.commit()  # Commit everything at once
 
@@ -155,6 +257,7 @@ def save_withdrawal(note: Note, withdrawal: Withdrawal, root: bytes, block: int)
                            (withdrawal.fee,))
 
         update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
+        validate_database_integrity(cursor)
 
         db_conn.commit()  # Commit everything at once
 
@@ -254,6 +357,7 @@ def initialize_db(db_file: str) -> None:
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_txns_commitment ON txns(commitment)")
 
     db_conn.commit()
+    validate_database_integrity()
     logger.warning("Database initialized successfully")
 
 def get_watermark() -> int:
