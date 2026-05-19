@@ -94,8 +94,13 @@ func ConfirmWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 	// * error sending the txn other that timeout waiting for confirmation
 	// Otherwise we keep the unconfirmed note, the cleanup process will eventually handle it
 	defer func() {
-		if (confirmationError == nil && saveNoteToDbError == nil) ||
-			confirmationError.Type != avm.ErrWaitTimeout {
+		if confirmationError == nil {
+			if saveNoteToDbError == nil {
+				db.DeleteUnconfirmedNote(noteId)
+			}
+			return
+		}
+		if confirmationError.Type != avm.ErrWaitTimeout {
 			db.DeleteUnconfirmedNote(noteId)
 		}
 	}()
