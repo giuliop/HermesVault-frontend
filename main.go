@@ -26,7 +26,7 @@ func main() {
 
 	templates.InitTemplates()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		if err := templates.Main.Execute(w, nil); err != nil {
 			log.Printf("Error executing main template: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
