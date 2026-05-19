@@ -2,11 +2,14 @@
 This script runs a service that asks the Algorand node for new transactions to the APP
 and saves them in the database.
 
-It saves eacn new deposit or change note to the txn_data.db sqlite database so that:
+It saves each new deposit or change note to the txns.db sqlite database so that:
 1) we can update the main frontend database with notes coming from other frontends (which we
    need to create merkle proofs for withdrawals)
 2) we can clean up unconfirmed_notes in the main frontend database in (the rare) case the
    frontend crashes before the note is confirmed
+
+No-change withdrawals do not insert a new note leaf; they are recorded separately for stats
+and replay safety.
 """
 import argparse
 import json
@@ -29,6 +32,7 @@ env = config.load_env("../config/.env")
 APP_FILE = os.path.join(env["AppSetupDirPath"], "App.json")
 DB_FILE = env["TxnsDbPath"]
 ALGOD_PATH = env["AlgodPath"]
+ALGORAND_API_REFERER = env.get("AlgorandApiReferer", "")
 try:
     INDEXER_URL = env["IndexerUrl"]
     INDEXER_TOKEN = env["IndexerToken"]
@@ -47,6 +51,11 @@ logger = logging.getLogger(__name__)
 
 APP_ID: int = None
 watermark: int = None
+
+def algorand_api_headers() -> dict[str, str] | None:
+    if ALGORAND_API_REFERER:
+        return {"Referer": ALGORAND_API_REFERER}
+    return None
 
 def get_watermark() -> int:
     return watermark
@@ -103,11 +112,8 @@ def handle_transaction(txn: sub.SubscribedTransaction, filter_name: str) -> None
 
     if filter_name == parse.withdrawFilterName:
         accounts = txn.get("application-transaction")["accounts"]
-        commitment, address, nullifier, amount, fee = parse.withdraw_args(args, accounts)
-        note = Note(
-            leaf_index=leaf_index,
-            commitment=commitment,
-            txn_id=txn_id,
+        commitment, address, nullifier, amount, fee, no_change = parse.withdraw_args(
+            args, accounts
         )
         withdrawal = Withdrawal(
             leaf_index=leaf_index,
@@ -115,6 +121,27 @@ def handle_transaction(txn: sub.SubscribedTransaction, filter_name: str) -> None
             nullifier=nullifier,
             amount=amount,
             fee=fee,
+        )
+        if no_change:
+            logger.warning(
+                "Recording no-change withdrawal %s at returned leaf index %s",
+                txn_id,
+                leaf_index,
+            )
+            db.retry(
+                lambda: db.save_noninserted_withdrawal(
+                    txn_id,
+                    withdrawal,
+                    tree_root,
+                    confirmed_block,
+                )
+            )
+            return
+
+        note = Note(
+            leaf_index=leaf_index,
+            commitment=commitment,
+            txn_id=txn_id,
         )
         db.retry(lambda: db.save_withdrawal(note, withdrawal, tree_root, confirmed_block))
 
@@ -136,7 +163,11 @@ def main():
     else:
         algod_address, algod_token = config.read_algod_config_from_dir(ALGOD_PATH)
 
-    algod = algosdk.v2client.algod.AlgodClient(algod_token, algod_address)
+    algod = algosdk.v2client.algod.AlgodClient(
+        algod_token,
+        algod_address,
+        headers=algorand_api_headers(),
+    )
 
     parser = argparse.ArgumentParser(description="Example script with --fastcatchup option.")
     parser.add_argument(
@@ -172,7 +203,11 @@ def main():
     )
 
     if INDEXER_URL:
-        indexer = algosdk.v2client.indexer.IndexerClient(INDEXER_TOKEN, INDEXER_URL)
+        indexer = algosdk.v2client.indexer.IndexerClient(
+            INDEXER_TOKEN,
+            INDEXER_URL,
+            headers=algorand_api_headers(),
+        )
         sync_behaviour = "catchup-with-indexer"
     else:
         indexer = None

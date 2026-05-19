@@ -17,6 +17,9 @@ WITHDRAWAL_TXN_TYPE = 1
 TXN_COLUMNS = (
     "leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier"
 )
+NONINSERTED_WITHDRAWAL_COLUMNS = (
+    "txn_id, leaf_index, address, amount, fee, from_nullifier, block"
+)
 FATAL_ERROR_FILE = "subscriber.fatal"
 fatal_error_path = None
 
@@ -106,6 +109,24 @@ def validate_txn_shape(expected: tuple) -> None:
         raise TxnIntegrityError("withdrawal transaction has an invalid nullifier")
 
 
+def validate_noninserted_withdrawal_shape(expected: tuple) -> None:
+    txn_id, leaf_index, address, amount, fee, from_nullifier, block = expected
+    if not txn_id:
+        raise TxnIntegrityError("empty no-change withdrawal transaction id")
+    if leaf_index < 0:
+        raise TxnIntegrityError(f"negative no-change withdrawal leaf index: {leaf_index}")
+    if not address:
+        raise TxnIntegrityError("empty no-change withdrawal address")
+    if amount < 0:
+        raise TxnIntegrityError(f"negative no-change withdrawal amount: {amount}")
+    if fee < 0:
+        raise TxnIntegrityError(f"negative no-change withdrawal fee: {fee}")
+    if from_nullifier is None or len(from_nullifier) != 32:
+        raise TxnIntegrityError("no-change withdrawal has an invalid nullifier")
+    if block < 0:
+        raise TxnIntegrityError(f"negative no-change withdrawal block: {block}")
+
+
 def update_stat(cursor: sqlite3.Cursor, key: str, delta: int) -> None:
     cursor.execute("UPDATE stats SET value = value + ? WHERE key = ?", (delta, key))
     if cursor.rowcount != 1:
@@ -176,12 +197,44 @@ def validate_database_integrity(cursor: sqlite3.Cursor | None = None) -> None:
         withdrawal_nullifier_count,
     ) = cursor.fetchone()
 
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(SUM(amount), 0),
+            COALESCE(SUM(CASE WHEN leaf_index < 0 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN amount < 0 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN fee < 0 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN from_nullifier IS NULL OR length(from_nullifier) != 32 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN txn_id = '' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN address = '' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN block < 0 THEN 1 ELSE 0 END), 0)
+        FROM noninserted_withdrawals
+        """
+    )
+    (
+        noninserted_withdrawal_total,
+        noninserted_negative_leaf_count,
+        noninserted_negative_amount_count,
+        noninserted_negative_fee_count,
+        noninserted_invalid_nullifier_count,
+        noninserted_empty_txn_id_count,
+        noninserted_empty_address_count,
+        noninserted_negative_block_count,
+    ) = cursor.fetchone()
+
     invalid_counts = {
         "invalid transaction types": invalid_type_count,
         "negative transaction amounts": invalid_amount_count,
         "invalid commitment lengths": invalid_commitment_count,
         "deposits with nullifiers": deposit_nullifier_count,
         "withdrawals without 32-byte nullifiers": withdrawal_nullifier_count,
+        "no-change withdrawals with negative leaf indexes": noninserted_negative_leaf_count,
+        "no-change withdrawals with negative amounts": noninserted_negative_amount_count,
+        "no-change withdrawals with negative fees": noninserted_negative_fee_count,
+        "no-change withdrawals without 32-byte nullifiers": noninserted_invalid_nullifier_count,
+        "no-change withdrawals with empty transaction ids": noninserted_empty_txn_id_count,
+        "no-change withdrawals with empty addresses": noninserted_empty_address_count,
+        "no-change withdrawals with negative blocks": noninserted_negative_block_count,
     }
     for label, count in invalid_counts.items():
         if count:
@@ -194,7 +247,7 @@ def validate_database_integrity(cursor: sqlite3.Cursor | None = None) -> None:
     stats = dict(cursor.fetchall())
     expected_stats = {
         "total_deposits": deposit_total,
-        "total_withdrawals": withdrawal_total,
+        "total_withdrawals": withdrawal_total + noninserted_withdrawal_total,
         "count_deposits": deposit_count,
     }
     for key, expected in expected_stats.items():
@@ -235,6 +288,41 @@ def insert_or_verify_txn(cursor: sqlite3.Cursor, expected: tuple) -> bool:
 
     raise TxnConflictError(
         f"conflicting transaction for leaf index {expected[0]} or txn id {expected[2]}"
+    )
+
+
+def existing_noninserted_withdrawal_matches(cursor: sqlite3.Cursor, expected: tuple) -> bool:
+    txn_id = expected[0]
+    from_nullifier = expected[5]
+    cursor.execute(
+        f"SELECT {NONINSERTED_WITHDRAWAL_COLUMNS} FROM noninserted_withdrawals "
+        "WHERE txn_id = ? OR from_nullifier = ?",
+        (txn_id, from_nullifier),
+    )
+    rows = cursor.fetchall()
+    if len(rows) != 1:
+        return False
+    return rows[0] == expected
+
+
+def insert_or_verify_noninserted_withdrawal(cursor: sqlite3.Cursor,
+                                            expected: tuple) -> bool:
+    validate_noninserted_withdrawal_shape(expected)
+
+    cursor.execute(
+        f"INSERT OR IGNORE INTO noninserted_withdrawals "
+        f"({NONINSERTED_WITHDRAWAL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        expected,
+    )
+    if cursor.rowcount == 1:
+        return True
+
+    if existing_noninserted_withdrawal_matches(cursor, expected):
+        logger.info("No-change withdrawal %s was already saved", expected[0])
+        return False
+
+    raise TxnConflictError(
+        f"conflicting no-change withdrawal for txn id {expected[0]} or nullifier"
     )
 
 
@@ -310,6 +398,42 @@ def save_withdrawal(note: Note, withdrawal: Withdrawal, root: bytes, block: int)
         raise
 
 
+def save_noninserted_withdrawal(txn_id: str, withdrawal: Withdrawal, root: bytes,
+                                block: int) -> None:
+    global db_conn
+    cursor = db_conn.cursor()
+
+    try:
+        expected = (
+            txn_id,
+            withdrawal.leaf_index,
+            withdrawal.address,
+            withdrawal.amount,
+            withdrawal.fee,
+            withdrawal.nullifier,
+            block,
+        )
+        inserted = insert_or_verify_noninserted_withdrawal(cursor, expected)
+
+        if inserted:
+            update_stat(cursor, "total_withdrawals", withdrawal.amount)
+            update_stat(cursor, "total_fees", withdrawal.fee)
+
+        update_root_and_watermark(cursor, root, withdrawal.leaf_index + 1, block, False)
+
+        db_conn.commit()
+
+        if inserted:
+            logger.info("Saved no-change withdrawal %s", withdrawal)
+        logger.info("Tree root %s", format_bytes(root))
+        logger.info("Block %s", block)
+
+    except Exception as e:
+        db_conn.rollback()
+        logger.error("Failed to save no-change withdrawal: %s", e)
+        raise
+
+
 def initialize_db(db_file: str) -> None:
     """
     Initialize the txn.db SQLite database with WAL mode, a busy timeout,
@@ -343,6 +467,21 @@ def initialize_db(db_file: str) -> None:
     ) STRICT;
     """
     cursor.execute(create_table_sql)
+
+    # Create no-change withdrawal table. These withdrawals do not insert a new
+    # note leaf, but they still affect totals and need replay-safe accounting.
+    create_noninserted_withdrawals_sql = """
+    CREATE TABLE IF NOT EXISTS noninserted_withdrawals (
+        txn_id         TEXT PRIMARY KEY,
+        leaf_index     INTEGER NOT NULL,
+        address        TEXT NOT NULL,
+        amount         INTEGER NOT NULL,
+        fee            INTEGER NOT NULL,
+        from_nullifier BLOB UNIQUE NOT NULL,
+        block          INTEGER NOT NULL
+    ) STRICT;
+    """
+    cursor.execute(create_noninserted_withdrawals_sql)
 
     # Create stats table
     create_stats_table_sql = """

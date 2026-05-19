@@ -75,6 +75,8 @@ func main() {
 
 func subscriberHealthGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Referrer-Policy", "origin")
+
 		hasFatalMarker, err := db.HasFatalMarker()
 		if err != nil {
 			log.Printf("Error checking subscriber fatal marker: %v", err)

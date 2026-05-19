@@ -14,6 +14,7 @@ import (
 
 	"github.com/algorand/go-algorand-sdk/v2/abi"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
+	"github.com/algorand/go-algorand-sdk/v2/client/v2/common"
 )
 
 type algodConfig struct {
@@ -42,12 +43,18 @@ func init() {
 		}
 	}
 
-	client, err = algod.MakeClient(
-		conf.URL,
-		conf.Token,
-	)
+	client, err = algod.MakeClientWithHeaders(conf.URL, conf.Token, algorandAPIHeaders())
 	if err != nil {
 		log.Fatalf("Failed to create algod client: %v", err)
+	}
+}
+
+func algorandAPIHeaders() []*common.Header {
+	if config.AlgorandApiReferer == "" {
+		return nil
+	}
+	return []*common.Header{
+		{Key: "Referer", Value: config.AlgorandApiReferer},
 	}
 }
 

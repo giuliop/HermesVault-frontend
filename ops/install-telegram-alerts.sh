@@ -15,6 +15,7 @@ fi
 sudo install -m 0644 "$SCRIPT_DIR/$SERVICE_NAME" "/etc/systemd/system/$SERVICE_NAME"
 sudo install -m 0644 "$SCRIPT_DIR/$PATH_NAME" "/etc/systemd/system/$PATH_NAME"
 
+sudo systemctl disable --now "$PATH_NAME" >/dev/null 2>&1 || true
 sudo systemctl daemon-reload
 sudo systemctl enable --now "$PATH_NAME"
 sudo systemctl status --no-pager "$PATH_NAME"

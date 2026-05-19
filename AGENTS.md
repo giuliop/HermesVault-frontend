@@ -41,6 +41,7 @@ The system uses two SQLite databases:
 
 **txns.db** (written by Python subscriber service, read by Go webserver):
 - `txns` table: Transaction data with leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier
+- `noninserted_withdrawals` table: `no_change=true` withdrawals that do not add Merkle leaves but still affect withdrawal and fee totals
 - `stats` table: Global statistics (total deposits, withdrawals, fees)
 - `watermark` table: Block sync watermark with algod
 - `roots` table: Last merkle tree root and leaf count
@@ -92,15 +93,17 @@ pipenv run python main.py
 ### Production Operations
 
 - Apache2 is the public reverse proxy; the Go webserver listens locally on port 5555.
+- Nodely whitelisting depends on outbound Algorand API requests carrying `Referer: https://hermesvault.org`. Keep `AlgorandApiReferer` set in `config/.env` for Go and Python algod/indexer clients.
 - Apache serves `/var/www/hermesvault/maintenance.html` with status 503 when `/var/www/hermesvault/maintenance.enable` exists.
 - Apache also enters maintenance mode when `/home/gws/dev/algorand/hermes/HermesVault-frontend/data/txns/subscriber.fatal` exists.
 - The Go webserver has a `subscriberHealthGuard` fallback that returns 503 when `subscriber.fatal` exists, mainly for direct localhost access or Apache bypasses.
 - The Python subscriber writes `data/txns/subscriber.fatal` with mode `0600` on unrecoverable transaction conflicts, then stops processing so it does not continue serving stale or inconsistent transaction state.
 - The subscriber runs full `txns.db` integrity validation at startup. Per-write checks validate transaction shape, required stats rows, and contiguous root advancement without a full-table scan. Integrity failures write `subscriber.fatal`.
+- Withdrawals with `no_change=true` do not insert a change note. The subscriber records them in `noninserted_withdrawals`, updates withdrawal/fee totals, and leaves the Merkle leaf ledger unchanged.
 - Subscriber `--fastcatchup` is for fresh/local testing only. Do not use it against an app with existing tree leaves because `txns.db` must contain contiguous transaction history for Merkle proofs.
 - The Go webserver also writes `subscriber.fatal` when a confirmed deposit/withdrawal cannot be persisted into `internal.db`, or when cleanup finds an unconfirmed note whose commitment does not match the confirmed chain transaction.
 - `redeploy.sh` removes `data/txns/subscriber.fatal` before restarting services. Do not remove the marker by hand unless the underlying subscriber failure has been understood and fixed.
-- Telegram alerting for `subscriber.fatal` is installed from `ops/install-telegram-alerts.sh`. It installs a systemd `.path` watcher and retrying oneshot `.service`.
+- Telegram alerting for `subscriber.fatal` is installed from `ops/install-telegram-alerts.sh`. It installs a systemd `.path` watcher and retrying oneshot `.service`. The path watcher uses `PathChanged` and the alert script records a content fingerprint under `/var/lib/hermesvault-alert` so the same marker does not spam duplicate Telegram messages.
 - Telegram secrets belong in `/etc/hermesvault-alert.env` with root-only permissions, not in `config/.env` or the repository.
 
 ### Database Operations

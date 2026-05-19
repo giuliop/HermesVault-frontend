@@ -59,10 +59,10 @@ def deposit_args(args: list[str]) -> Tuple[bytes, str, int]:
 
 
 def withdraw_args(args: list[str], accounts: list[str]
-                  ) -> Tuple[bytes, bytes, bytes, int, int]:
+                  ) -> Tuple[bytes, str, bytes, int, int, bool]:
     """
-    Return (commitment, withdrawal_address, nullifier, amount) from the arguments and accounts of a
-    withdraw transaction.
+    Return (commitment, withdrawal_address, nullifier, amount, fee, no_change) from the
+    arguments and accounts of a withdraw transaction.
     The arc4 arg signature is (byte[32][],byte[32][],account,account, bool), where the args are:
       - byte[32][] -> zk proof
       - byte[32][] -> zk public inputs:
@@ -95,7 +95,12 @@ def withdraw_args(args: list[str], accounts: list[str]
     withdrawal_address_pos = int.from_bytes(withdrawal_account_pos_bytes, byteorder="big") - 1
     withdrawal_address = accounts[withdrawal_address_pos]
 
-    return commitment, withdrawal_address, nullifier, amount, fee
+    no_change_arg = args[5]
+    no_change_bytes = base64.b64decode(no_change_arg)
+    no_change_abi_type = abi.ABIType.from_string("bool")
+    no_change = no_change_abi_type.decode(no_change_bytes)
+
+    return commitment, withdrawal_address, nullifier, amount, fee, no_change
 
 def get_Byte32(array: bytes, pos: int) -> bytes:
     """

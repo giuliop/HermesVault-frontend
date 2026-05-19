@@ -37,11 +37,12 @@ var (
 
 // file paths
 var (
-	AppSetupDirPath string
-	InternalDbPath  string
-	TxnsDbPath      string
-	AlgodPath       string
-	AlgodToken      string
+	AppSetupDirPath    string
+	InternalDbPath     string
+	TxnsDbPath         string
+	AlgodPath          string
+	AlgodToken         string
+	AlgorandApiReferer string
 )
 
 func init() {
@@ -58,6 +59,7 @@ func init() {
 	TxnsDbPath = env["TxnsDbPath"]
 	AlgodPath = env["AlgodPath"]
 	AlgodToken = env["AlgodToken"]
+	AlgorandApiReferer = env["AlgorandApiReferer"]
 }
 
 // LoadEnv reads a set of key-value pairs from a file and returns them as a map
