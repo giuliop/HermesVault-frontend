@@ -6,6 +6,8 @@ The system consists of two processes:
 1. **Go webserver**: Serves frontend and manages backend (creating zk-proofs, sending blockchain transactions)
 2. **Python subscriber service**: Monitors blockchain through algod node and saves transaction data
 
+Production also uses systemd path/service units for operational alerting, but those are not part of the application request path.
+
 ## Architecture
 
 This is a monorepo containing both backend (Go) and frontend (JavaScript) components:
@@ -41,7 +43,7 @@ The system uses two SQLite databases:
 - `txns` table: Transaction data with leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier
 - `stats` table: Global statistics (total deposits, withdrawals, fees)
 - `watermark` table: Block sync watermark with algod
-- `root` table: Last merkle tree root and leaf count
+- `roots` table: Last merkle tree root and leaf count
 
 **internal.db** (accessed only by Go webserver):
 - `notes` table: Note data with leaf_index, commitment, encrypted nullifier, txn_id
