@@ -12,6 +12,7 @@ import argparse
 import json
 import logging
 import os
+import time
 
 import algokit_subscriber as sub
 import algosdk
@@ -149,6 +150,9 @@ def main():
     else:
         init()
 
+    if db.has_fatal_error():
+        sleep_after_fatal_error()
+
     depositFilter = NamedTransactionFilter(
         name=parse.depositFilterName,
         filter=TransactionFilter(app_id=APP_ID, method_signature=parse.DEPOSIT_SIGNATURE),
@@ -183,10 +187,25 @@ def main():
     subscriber.on(withdrawFilter['name'], handle_transaction)
 
     def handle_error(error: Exception, _) -> None:
+        if isinstance(error, db.TxnConflictError):
+            db.record_fatal_error(error)
+            subscriber.stop(str(error))
+            return
         logger.error("Subscriber error: %s", error)
     subscriber.on_error(handle_error)
 
     subscriber.start()
+    if db.has_fatal_error():
+        sleep_after_fatal_error()
+
+
+def sleep_after_fatal_error() -> None:
+    logger.critical(
+        "Subscriber stopped because a fatal consistency error marker exists. "
+        "Inspect txns.db and remove the marker file after manual recovery."
+    )
+    while True:
+        time.sleep(3600)
 
 
 if __name__ == "__main__":

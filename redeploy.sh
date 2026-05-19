@@ -4,6 +4,8 @@ set -euo pipefail
 # When an error occurs, run the ERR trap which logs a message.
 trap 'echo "An error occurred. Please check the logs. Maintenance mode remains enabled."' ERR
 
+SUBSCRIBER_FATAL_FLAG="./data/txns/subscriber.fatal"
+
 echo "Enabling maintenance mode..."
 sudo touch /var/www/hermesvault/maintenance.enable
 
@@ -15,6 +17,9 @@ npm run build --prefix frontend
 
 echo "Building Go binary..."
 go build -o ./.tmp/main .
+
+echo "Clearing subscriber fatal marker..."
+rm -f "$SUBSCRIBER_FATAL_FLAG"
 
 # Function to restart a service with error handling and informative output.
 restart_service() {

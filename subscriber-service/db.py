@@ -1,6 +1,8 @@
 import logging
+import os
 import sqlite3
 import time
+from datetime import datetime, timezone
 
 from models import Deposit, Note, Withdrawal, format_bytes
 
@@ -12,17 +14,89 @@ db_conn = None
 DEPOSIT_TXN_TYPE = 0
 WITHDRAWAL_TXN_TYPE = 1
 
+TXN_COLUMNS = (
+    "leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier"
+)
+FATAL_ERROR_FILE = "subscriber.fatal"
+fatal_error_path = None
+
+
+class TxnConflictError(RuntimeError):
+    pass
+
+
+def has_fatal_error() -> bool:
+    return fatal_error_path is not None and os.path.exists(fatal_error_path)
+
+
+def record_fatal_error(error: Exception) -> None:
+    if fatal_error_path is None:
+        logger.critical("Fatal subscriber error before database initialization: %s", error)
+        return
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    with open(fatal_error_path, "w", encoding="utf-8") as f:
+        f.write(f"{timestamp}\n{error}\n")
+    logger.critical("Recorded fatal subscriber error in %s", fatal_error_path)
+
+
+def update_root_and_watermark(cursor: sqlite3.Cursor, root: bytes, leaf_count: int,
+                              block: int) -> None:
+    cursor.execute("SELECT value, leaf_count FROM roots WHERE id = 1")
+    row = cursor.fetchone()
+    current_root = row[0] if row else b""
+    current_leaf_count = row[1] if row else 0
+
+    if leaf_count == current_leaf_count and current_root != root:
+        raise TxnConflictError(f"conflicting root for leaf count {leaf_count}")
+
+    if leaf_count > current_leaf_count:
+        cursor.execute(
+            "UPDATE roots SET value = ?, leaf_count = ? WHERE id = 1",
+            (root, leaf_count),
+        )
+
+    cursor.execute("UPDATE watermark SET value = MAX(value, ?) WHERE id = 1", (block,))
+
+
+def existing_txn_matches(cursor: sqlite3.Cursor, expected: tuple) -> bool:
+    leaf_index = expected[0]
+    txn_id = expected[2]
+    cursor.execute(
+        f"SELECT {TXN_COLUMNS} FROM txns WHERE leaf_index = ? OR txn_id = ?",
+        (leaf_index, txn_id),
+    )
+    rows = cursor.fetchall()
+    if len(rows) != 1:
+        return False
+    return rows[0] == expected
+
+
+def insert_or_verify_txn(cursor: sqlite3.Cursor, expected: tuple) -> bool:
+    cursor.execute(
+        f"INSERT OR IGNORE INTO txns ({TXN_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        expected,
+    )
+    if cursor.rowcount == 1:
+        return True
+
+    if existing_txn_matches(cursor, expected):
+        logger.info("Transaction %s at leaf index %s was already saved",
+                    expected[2], expected[0])
+        return False
+
+    raise TxnConflictError(
+        f"conflicting transaction for leaf index {expected[0]} or txn id {expected[2]}"
+    )
+
+
 def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
-    txns_table_sql = """
-    INSERT INTO txns (leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """
     global db_conn
     cursor = db_conn.cursor()
 
     try:
-        cursor.execute(
-            txns_table_sql,
+        inserted = insert_or_verify_txn(
+            cursor,
             (
                 note.leaf_index,
                 note.commitment,
@@ -33,19 +107,19 @@ def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
                 None,
             ),
         )
-        cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_deposits'",
-                       (deposit.amount,))
-        cursor.execute("UPDATE stats SET value = value + 1 WHERE key = 'count_deposits'")
 
-        cursor.execute("UPDATE roots SET value = ?, leaf_count = ? WHERE id = 1",
-                          (root, note.leaf_index + 1))
+        if inserted:
+            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_deposits'",
+                           (deposit.amount,))
+            cursor.execute("UPDATE stats SET value = value + 1 WHERE key = 'count_deposits'")
 
-        cursor.execute("UPDATE watermark SET value = ? WHERE id = 1", (block,))
+        update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
 
         db_conn.commit()  # Commit everything at once
 
-        logger.info("Saved deposit %s", deposit)
-        logger.info("Saved note %s", note)
+        if inserted:
+            logger.info("Saved deposit %s", deposit)
+            logger.info("Saved note %s", note)
         logger.info("Tree root %s", format_bytes(root))
         logger.info("Block %s", block)
 
@@ -56,16 +130,12 @@ def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
 
 
 def save_withdrawal(note: Note, withdrawal: Withdrawal, root: bytes, block: int) -> None:
-    txns_table_sql = """
-    INSERT INTO txns (leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """
     global db_conn
     cursor = db_conn.cursor()
 
     try:
-        cursor.execute(
-            txns_table_sql,
+        inserted = insert_or_verify_txn(
+            cursor,
             (
                 note.leaf_index,
                 note.commitment,
@@ -76,21 +146,21 @@ def save_withdrawal(note: Note, withdrawal: Withdrawal, root: bytes, block: int)
                 withdrawal.nullifier,
             ),
         )
-        cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_withdrawals'",
-                       (withdrawal.amount,))
 
-        cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_fees'",
-                       (withdrawal.fee,))
+        if inserted:
+            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_withdrawals'",
+                           (withdrawal.amount,))
 
-        cursor.execute("UPDATE roots SET value = ?, leaf_count = ? WHERE id = 1",
-                          (root, note.leaf_index + 1))
+            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_fees'",
+                           (withdrawal.fee,))
 
-        cursor.execute("UPDATE watermark SET value = ? WHERE id = 1", (block,))
+        update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
 
         db_conn.commit()  # Commit everything at once
 
-        logger.info("Saved withdrawal %s", withdrawal)
-        logger.info("Saved note %s", note)
+        if inserted:
+            logger.info("Saved withdrawal %s", withdrawal)
+            logger.info("Saved note %s", note)
         logger.info("Tree root %s", format_bytes(root))
         logger.info("Block %s", block)
 
@@ -106,7 +176,8 @@ def initialize_db(db_file: str) -> None:
     and create the necessary tables if they don't exist. This function sets
     a module-level variable `db_conn` that will be used by other functions.
     """
-    global db_conn
+    global db_conn, fatal_error_path
+    fatal_error_path = os.path.join(os.path.dirname(db_file), FATAL_ERROR_FILE)
     db_conn = sqlite3.connect(db_file, timeout=5.0)
     cursor = db_conn.cursor()
 

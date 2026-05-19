@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -46,6 +47,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + config.Port,
+		Handler:           subscriberHealthGuard(http.DefaultServeMux),
 		ReadHeaderTimeout: 60 * time.Second,
 		WriteTimeout:      120 * time.Second,
 		IdleTimeout:       300 * time.Second,
@@ -70,4 +72,21 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v\n", err)
 	}
+}
+
+func subscriberHealthGuard(next http.Handler) http.Handler {
+	fatalPath := filepath.Join(filepath.Dir(config.TxnsDbPath), "subscriber.fatal")
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := os.Stat(fatalPath); err == nil {
+			http.Error(w, "Service temporarily unavailable", http.StatusServiceUnavailable)
+			return
+		} else if err != nil && !os.IsNotExist(err) {
+			log.Printf("Error checking subscriber fatal marker: %v", err)
+			http.Error(w, "Service temporarily unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
