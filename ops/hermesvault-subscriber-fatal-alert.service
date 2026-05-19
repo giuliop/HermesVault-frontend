@@ -1,0 +1,12 @@
+[Unit]
+Description=Alert when HermesVault subscriber fatal marker exists
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/hermesvault-alert.env
+ExecStart=/home/gws/dev/algorand/hermes/HermesVault-frontend/ops/hermesvault-subscriber-fatal-alert.sh
+Restart=on-failure
+RestartSec=5min

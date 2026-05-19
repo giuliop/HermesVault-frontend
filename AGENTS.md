@@ -87,6 +87,17 @@ pipenv run python main.py
 ./redeploy.sh
 ```
 
+### Production Operations
+
+- Apache2 is the public reverse proxy; the Go webserver listens locally on port 5555.
+- Apache serves `/var/www/hermesvault/maintenance.html` with status 503 when `/var/www/hermesvault/maintenance.enable` exists.
+- Apache also enters maintenance mode when `/home/gws/dev/algorand/hermes/HermesVault-frontend/data/txns/subscriber.fatal` exists.
+- The Go webserver has a `subscriberHealthGuard` fallback that returns 503 when `subscriber.fatal` exists, mainly for direct localhost access or Apache bypasses.
+- The Python subscriber writes `data/txns/subscriber.fatal` on unrecoverable transaction conflicts, then stops processing so it does not continue serving stale or inconsistent transaction state.
+- `redeploy.sh` removes `data/txns/subscriber.fatal` before restarting services. Do not remove the marker by hand unless the underlying subscriber failure has been understood and fixed.
+- Telegram alerting for `subscriber.fatal` is installed from `ops/install-telegram-alerts.sh`. It installs a systemd `.path` watcher and retrying oneshot `.service`.
+- Telegram secrets belong in `/etc/hermesvault-alert.env` with root-only permissions, not in `config/.env` or the repository.
+
 ### Database Operations
 The application uses SQLite with automatic cleanup routines. Database files are located in `/data/` directory.
 
@@ -106,6 +117,7 @@ The application uses SQLite with automatic cleanup routines. Database files are 
 - Air configuration is in `.air.toml` for development hot reload
 - Production runs on a Linode cloud server using Apache2 as reverse proxy with certbot for SSL certificates
 - Systemd manages both Go webserver and Python process in production
+- The subscriber service uses a fatal marker file (`data/txns/subscriber.fatal`) to fail closed on data conflicts.
 
 ## Security Considerations
 
@@ -113,3 +125,4 @@ The application uses SQLite with automatic cleanup routines. Database files are 
 - Database contains encrypted transaction receipts for regulatory compliance
 - Frontend validates all user inputs before processing
 - ZKP circuits ensure transaction privacy without revealing amounts or addresses
+- Keep bot tokens and other operational secrets out of the repository; use root-owned environment files under `/etc` for systemd-only secrets.

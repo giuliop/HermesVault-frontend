@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch HermesVault subscriber fatal marker
+
+[Path]
+PathExists=/home/gws/dev/algorand/hermes/HermesVault-frontend/data/txns/subscriber.fatal
+Unit=hermesvault-subscriber-fatal-alert.service
+
+[Install]
+WantedBy=multi-user.target
