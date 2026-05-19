@@ -95,8 +95,9 @@ pipenv run python main.py
 - Apache serves `/var/www/hermesvault/maintenance.html` with status 503 when `/var/www/hermesvault/maintenance.enable` exists.
 - Apache also enters maintenance mode when `/home/gws/dev/algorand/hermes/HermesVault-frontend/data/txns/subscriber.fatal` exists.
 - The Go webserver has a `subscriberHealthGuard` fallback that returns 503 when `subscriber.fatal` exists, mainly for direct localhost access or Apache bypasses.
-- The Python subscriber writes `data/txns/subscriber.fatal` on unrecoverable transaction conflicts, then stops processing so it does not continue serving stale or inconsistent transaction state.
-- The subscriber validates `txns.db` at startup and after writes for contiguous leaves, root leaf-count drift, transaction shape, and stats drift. Integrity failures write `subscriber.fatal`.
+- The Python subscriber writes `data/txns/subscriber.fatal` with mode `0600` on unrecoverable transaction conflicts, then stops processing so it does not continue serving stale or inconsistent transaction state.
+- The subscriber runs full `txns.db` integrity validation at startup. Per-write checks validate transaction shape, required stats rows, and contiguous root advancement without a full-table scan. Integrity failures write `subscriber.fatal`.
+- Subscriber `--fastcatchup` is for fresh/local testing only. Do not use it against an app with existing tree leaves because `txns.db` must contain contiguous transaction history for Merkle proofs.
 - The Go webserver also writes `subscriber.fatal` when a confirmed deposit/withdrawal cannot be persisted into `internal.db`, or when cleanup finds an unconfirmed note whose commitment does not match the confirmed chain transaction.
 - `redeploy.sh` removes `data/txns/subscriber.fatal` before restarting services. Do not remove the marker by hand unless the underlying subscriber failure has been understood and fixed.
 - Telegram alerting for `subscriber.fatal` is installed from `ops/install-telegram-alerts.sh`. It installs a systemd `.path` watcher and retrying oneshot `.service`.

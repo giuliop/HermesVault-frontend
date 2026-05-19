@@ -123,7 +123,9 @@ def main():
     """
     Run the subscriber service.
     If --fastcatchup is set, it will immediately update the watermark to the current
-    blockchain block height and ignore all previous transactions, this is for testing ONLY.
+    blockchain block height and ignore all previous transactions. This is for fresh/local
+    testing only; do not use it against an app with existing tree leaves because txns.db
+    must contain contiguous transaction history for Merkle proofs.
     """
 
     if ALGOD_PATH == "":
@@ -140,7 +142,10 @@ def main():
     parser.add_argument(
         "--fastcatchup",
         action="store_true",
-        help="Enable fast catch-up mode."
+        help=(
+            "Enable fast catch-up for fresh/local testing only. Do not use against "
+            "an app with existing tree leaves; txns.db must be contiguous."
+        )
     )
     args = parser.parse_args()
 

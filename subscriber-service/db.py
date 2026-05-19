@@ -43,17 +43,34 @@ def record_fatal_error(error: Exception) -> None:
         return
 
     timestamp = datetime.now(timezone.utc).isoformat()
-    with open(fatal_error_path, "w", encoding="utf-8") as f:
+    fd = os.open(fatal_error_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(f"{timestamp}\n{error}\n")
+    os.chmod(fatal_error_path, 0o600)
     logger.critical("Recorded fatal subscriber error in %s", fatal_error_path)
 
 
 def update_root_and_watermark(cursor: sqlite3.Cursor, root: bytes, leaf_count: int,
-                              block: int) -> None:
+                              block: int, inserted: bool) -> None:
     cursor.execute("SELECT value, leaf_count FROM roots WHERE id = 1")
     row = cursor.fetchone()
-    current_root = row[0] if row else b""
-    current_leaf_count = row[1] if row else 0
+    if row is None:
+        raise TxnIntegrityError("missing root row")
+
+    current_root = row[0]
+    current_leaf_count = row[1]
+
+    if inserted and leaf_count != current_leaf_count + 1:
+        raise TxnIntegrityError(
+            f"non-contiguous root update: current_leaf_count={current_leaf_count}, "
+            f"new_leaf_count={leaf_count}"
+        )
+
+    if not inserted and leaf_count > current_leaf_count:
+        raise TxnIntegrityError(
+            f"existing transaction would advance root from {current_leaf_count} "
+            f"to {leaf_count}"
+        )
 
     if leaf_count == current_leaf_count and current_root != root:
         raise TxnConflictError(f"conflicting root for leaf count {leaf_count}")
@@ -65,6 +82,34 @@ def update_root_and_watermark(cursor: sqlite3.Cursor, root: bytes, leaf_count: i
         )
 
     cursor.execute("UPDATE watermark SET value = MAX(value, ?) WHERE id = 1", (block,))
+
+
+def validate_txn_shape(expected: tuple) -> None:
+    leaf_index, commitment, txn_id, txn_type, address, amount, from_nullifier = expected
+    if leaf_index < 0:
+        raise TxnIntegrityError(f"negative leaf index: {leaf_index}")
+    if len(commitment) != 32:
+        raise TxnIntegrityError(f"invalid commitment length: {len(commitment)}")
+    if not txn_id:
+        raise TxnIntegrityError("empty transaction id")
+    if txn_type not in (DEPOSIT_TXN_TYPE, WITHDRAWAL_TXN_TYPE):
+        raise TxnIntegrityError(f"invalid transaction type: {txn_type}")
+    if not address:
+        raise TxnIntegrityError("empty transaction address")
+    if amount < 0:
+        raise TxnIntegrityError(f"negative transaction amount: {amount}")
+    if txn_type == DEPOSIT_TXN_TYPE and from_nullifier is not None:
+        raise TxnIntegrityError("deposit transaction has a nullifier")
+    if txn_type == WITHDRAWAL_TXN_TYPE and (
+        from_nullifier is None or len(from_nullifier) != 32
+    ):
+        raise TxnIntegrityError("withdrawal transaction has an invalid nullifier")
+
+
+def update_stat(cursor: sqlite3.Cursor, key: str, delta: int) -> None:
+    cursor.execute("UPDATE stats SET value = value + ? WHERE key = ?", (delta, key))
+    if cursor.rowcount != 1:
+        raise TxnIntegrityError(f"missing stats row: {key}")
 
 
 def validate_database_integrity(cursor: sqlite3.Cursor | None = None) -> None:
@@ -174,6 +219,8 @@ def existing_txn_matches(cursor: sqlite3.Cursor, expected: tuple) -> bool:
 
 
 def insert_or_verify_txn(cursor: sqlite3.Cursor, expected: tuple) -> bool:
+    validate_txn_shape(expected)
+
     cursor.execute(
         f"INSERT OR IGNORE INTO txns ({TXN_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
         expected,
@@ -196,26 +243,22 @@ def save_deposit(note: Note, deposit: Deposit, root: bytes, block: int) -> None:
     cursor = db_conn.cursor()
 
     try:
-        inserted = insert_or_verify_txn(
-            cursor,
-            (
-                note.leaf_index,
-                note.commitment,
-                note.txn_id,
-                DEPOSIT_TXN_TYPE,
-                deposit.address,
-                deposit.amount,
-                None,
-            ),
+        expected = (
+            note.leaf_index,
+            note.commitment,
+            note.txn_id,
+            DEPOSIT_TXN_TYPE,
+            deposit.address,
+            deposit.amount,
+            None,
         )
+        inserted = insert_or_verify_txn(cursor, expected)
 
         if inserted:
-            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_deposits'",
-                           (deposit.amount,))
-            cursor.execute("UPDATE stats SET value = value + 1 WHERE key = 'count_deposits'")
+            update_stat(cursor, "total_deposits", deposit.amount)
+            update_stat(cursor, "count_deposits", 1)
 
-        update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
-        validate_database_integrity(cursor)
+        update_root_and_watermark(cursor, root, note.leaf_index + 1, block, inserted)
 
         db_conn.commit()  # Commit everything at once
 
@@ -236,28 +279,22 @@ def save_withdrawal(note: Note, withdrawal: Withdrawal, root: bytes, block: int)
     cursor = db_conn.cursor()
 
     try:
-        inserted = insert_or_verify_txn(
-            cursor,
-            (
-                note.leaf_index,
-                note.commitment,
-                note.txn_id,
-                WITHDRAWAL_TXN_TYPE,
-                withdrawal.address,
-                withdrawal.amount,
-                withdrawal.nullifier,
-            ),
+        expected = (
+            note.leaf_index,
+            note.commitment,
+            note.txn_id,
+            WITHDRAWAL_TXN_TYPE,
+            withdrawal.address,
+            withdrawal.amount,
+            withdrawal.nullifier,
         )
+        inserted = insert_or_verify_txn(cursor, expected)
 
         if inserted:
-            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_withdrawals'",
-                           (withdrawal.amount,))
+            update_stat(cursor, "total_withdrawals", withdrawal.amount)
+            update_stat(cursor, "total_fees", withdrawal.fee)
 
-            cursor.execute("UPDATE stats SET value = value + ? WHERE key = 'total_fees'",
-                           (withdrawal.fee,))
-
-        update_root_and_watermark(cursor, root, note.leaf_index + 1, block)
-        validate_database_integrity(cursor)
+        update_root_and_watermark(cursor, root, note.leaf_index + 1, block, inserted)
 
         db_conn.commit()  # Commit everything at once
 

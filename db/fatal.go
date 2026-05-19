@@ -28,5 +28,8 @@ func HasFatalMarker() (bool, error) {
 func RecordFatalMarker(format string, args ...any) error {
 	message := fmt.Sprintf(format, args...)
 	content := fmt.Sprintf("%s\n%s\n", time.Now().UTC().Format(time.RFC3339Nano), message)
-	return os.WriteFile(FatalMarkerPath(), []byte(content), 0644)
+	if err := os.WriteFile(FatalMarkerPath(), []byte(content), 0600); err != nil {
+		return err
+	}
+	return os.Chmod(FatalMarkerPath(), 0600)
 }

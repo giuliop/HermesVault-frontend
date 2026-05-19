@@ -153,8 +153,6 @@ def main() -> int:
 
         with connect_read_only(args.internal_db) as internal_connection:
             notes_counts = fetch_internal_counts(internal_connection, args.txns_db, "notes")
-
-        with connect_read_only(args.internal_db) as internal_connection:
             unconfirmed_counts = fetch_internal_counts(
                 internal_connection,
                 args.txns_db,
